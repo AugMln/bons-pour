@@ -8,7 +8,8 @@
   const ANCIENNES_CLES = ["bons-v1"];
   const URL_WEB3FORMS = "https://api.web3forms.com/submit";
   const DELAI_ENVOI_MS = 15000;
-  const PEU_IMPORTE = "Peu importe";
+  // Seule question posée : l'urgence (le reste se discute de vive voix).
+  const URGENCES = ["Quand vous voulez", "Bientôt si possible", "C'est urgent"];
 
   const params = new URLSearchParams(window.location.search);
   const MODE_TEST = params.has("test");
@@ -461,13 +462,13 @@
     }
   }
 
-  // Groupe de gros boutons à choix unique ; « Peu importe » est coché par défaut.
+  // Groupe de gros boutons à choix unique ; la première option est cochée par défaut.
   function groupeChoix(nom, legende, options) {
     return h("fieldset", { class: "groupe" },
       h("legend", { class: "etiquette" }, legende),
       h("div", { class: "choix-liste" },
-        options.map((option) => {
-          const defaut = option === PEU_IMPORTE;
+        options.map((option, i) => {
+          const defaut = i === 0;
           return h("label", { class: "choix" + (defaut ? " coche" : "") },
             h("input", { type: "radio", name: nom, value: option, checked: defaut }),
             h("span", {}, option));
@@ -496,8 +497,7 @@
         h("p", { class: "modale-kicker" }, [numero(index), bon.categorie].filter(Boolean).join(" — ")),
         h("h2", { id: "modale-titre" }, bon.joker ? "Utiliser un joker" : bon.titre),
         h("p", { class: "modale-sous-titre" }, sousTitre)),
-      groupeChoix("quand", "Quand ?", ["En semaine", "Le week-end", PEU_IMPORTE]),
-      groupeChoix("moment", "À quel moment ?", ["Le matin", "L'après-midi", PEU_IMPORTE]),
+      groupeChoix("urgence", "C'est pressé ?", URGENCES),
       h("label", { for: "mot", class: "etiquette" },
         bon.joker ? "De quoi avez-vous besoin ?" : "Un petit mot ? (facultatif)"),
       zone,
@@ -525,11 +525,8 @@
         return;
       }
 
-      const creneau = ["quand", "moment"]
-        .map((nom) => form.querySelector(`input[name="${nom}"]:checked`)?.value)
-        .filter((v) => v && v !== PEU_IMPORTE)
-        .join(", ");
-      const utilisation = { uid: nouvelUid(), bon: bon.id, date: aujourdhuiISO(), message, creneau };
+      const urgence = form.querySelector('input[name="urgence"]:checked')?.value || URGENCES[0];
+      const utilisation = { uid: nouvelUid(), bon: bon.id, date: aujourdhuiISO(), message, urgence };
 
       erreur.hidden = true;
       envoiEnCours = true;
@@ -583,7 +580,6 @@
   function ligneConfig(u) {
     const champs = [`uid: ${JSON.stringify(u.uid)}`, `bon: ${JSON.stringify(u.bon)}`, `date: ${JSON.stringify(u.date)}`];
     if (u.message) champs.push(`message: ${JSON.stringify(u.message)}`);
-    if (u.creneau) champs.push(`creneau: ${JSON.stringify(u.creneau)}`);
     return `{ ${champs.join(", ")} },`;
   }
 
@@ -597,7 +593,8 @@
       throw new Error("Clé Web3Forms manquante dans config.js");
     }
 
-    const prefixe = MODE_TEST ? "[TEST] " : "";
+    const prefixe = (MODE_TEST ? "[TEST] " : "")
+      + (utilisation.urgence === URGENCES[2] ? "[URGENT] " : utilisation.urgence === URGENCES[1] ? "[Bientôt] " : "");
     const sujet = bon.joker
       ? `${prefixe}Joker — demande sur mesure : ${utilisation.message.slice(0, 60)}`
       : `${prefixe}Bon utilisé : ${bon.titre}`;
@@ -613,7 +610,7 @@
           subject: sujet,
           from_name: "Carnet de bons",
           "Bon": bon.titre,
-          "Créneau souhaité": utilisation.creneau || PEU_IMPORTE,
+          "Urgence": utilisation.urgence,
           "Message": utilisation.message || "(pas de message)",
           "Date de la demande": dateLisible(utilisation.date),
           "Il en reste": `${restantsApres} sur ${quantite(bon)}`,

@@ -32,7 +32,7 @@ const CONFIG = {
     { id: "repas",   emoji: "🍲", titre: "Un repas cuisiné par moi",     detail: "" },
     { id: "jeux",    emoji: "🎲", titre: "Un après-midi jeux de société", detail: "" },
     { id: "balade",  emoji: "🚶", titre: "Une balade ensemble",          detail: "" },
-    { id: "courses", emoji: "🛒", titre: "Les grosses courses",          detail: "Je porte, vous choisissez" },
+    { id: "decheterie", categorie: "Quotidien",  titre: "Un aller-retour à la déchèterie",   detail: "Tout type de déchets, je m'en charge." },
     { id: "photos",  emoji: "📸", titre: "Trier / numériser vos photos", detail: "" },
     { id: "joker1",  emoji: "🃏", titre: "Bon joker",                    detail: "À vous de choisir !", joker: true },
     { id: "joker2",  emoji: "🃏", titre: "Bon joker",                    detail: "À vous de choisir !", joker: true },

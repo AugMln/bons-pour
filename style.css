@@ -715,7 +715,7 @@ h1 {
   font-weight: 500;
 }
 
-/* Choix en un clic (créneau) */
+/* Choix en un clic (urgence) */
 .groupe { border: 0; padding: 0; margin: 0 0 22px; min-width: 0; }
 .choix-liste {
   display: grid;
