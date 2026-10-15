@@ -4,11 +4,15 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carnet de bons</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23ebe5d8'/><text x='50' y='72' font-family='Georgia,serif' font-style='italic' font-size='70' text-anchor='middle' fill='%23a8432f'>b</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23efe7d8'/><text x='50' y='72' font-family='Georgia,serif' font-style='italic' font-size='70' text-anchor='middle' fill='%237b2d26'>b</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;800&display=swap">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Jost:wght@400;500&display=swap">
+  <script>
+    // Paramètre anti-cache : GitHub Pages doit toujours servir la dernière version du style.
+    var v = Date.now();
+    document.write('<link rel="stylesheet" href="style.css?v=' + v + '">');
+  </script>
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
@@ -18,43 +22,43 @@
 
     <header class="masthead">
       <span id="mast-date"></span>
-      <span>Carnet de bons</span>
+      <span class="marque">Carnet de bons</span>
       <span>Édition anniversaire</span>
     </header>
 
     <section class="hero">
-      <div class="hero-texte">
-        <h1>joyeux anniversaire</h1>
-        <p id="noms" class="noms"></p>
-        <dl class="fiche">
-          <div><dt>Offert par</dt><dd id="fiche-auteur"></dd></div>
-          <div><dt>Contenu</dt><dd id="fiche-contenu"></dd></div>
-          <div><dt>Validité</dt><dd>Sans limite de temps</dd></div>
-        </dl>
-        <p id="message" class="message"></p>
-      </div>
+      <p class="hero-kicker">Pour vos anniversaires</p>
+      <h1>Joyeux anniversaire</h1>
+      <p id="noms" class="noms"></p>
+      <div class="ornement" aria-hidden="true"><span></span></div>
+      <p id="message" class="message"></p>
       <figure id="hero-photo" class="hero-photo" hidden>
         <img id="photo-accueil" alt="">
       </figure>
-      <div id="hero-bloc" class="hero-bloc" aria-hidden="true"></div>
+      <dl class="fiche">
+        <div><dt>Offert par</dt><dd id="fiche-auteur"></dd></div>
+        <div><dt>Contenu</dt><dd id="fiche-contenu"></dd></div>
+        <div><dt>Validité</dt><dd>Sans limite de temps</dd></div>
+      </dl>
     </section>
 
     <section class="mode-emploi" aria-labelledby="mode-emploi-titre">
       <h2 id="mode-emploi-titre" class="rubrique">Mode d'emploi</h2>
       <ol>
-        <li><span class="chiffre">I.</span><p>Choisissez un bon dans le carnet.</p></li>
-        <li><span class="chiffre">II.</span><p>Cliquez sur «&nbsp;Utiliser ce bon&nbsp;».</p></li>
-        <li><span class="chiffre">III.</span><p id="etape3">Je reçois votre message et je vous recontacte.</p></li>
+        <li><span class="chiffre">I</span><p>Choisissez un bon dans le carnet.</p></li>
+        <li><span class="chiffre">II</span><p>Cliquez sur «&nbsp;Utiliser ce bon&nbsp;».</p></li>
+        <li><span class="chiffre">III</span><p id="etape3">Je reçois votre message et je vous recontacte.</p></li>
       </ol>
     </section>
 
     <main>
       <div id="prochain" class="prochain" hidden></div>
       <div class="resume">
-        <h2 class="titre-section">le carnet</h2>
+        <h2 class="titre-section">Le carnet</h2>
+        <div class="ornement" aria-hidden="true"><span></span></div>
         <p id="compteur" class="compteur"></p>
+        <div class="jauge" aria-hidden="true"><div id="jauge" class="jauge-remplie"></div></div>
       </div>
-      <div class="jauge" aria-hidden="true"><div id="jauge" class="jauge-remplie"></div></div>
       <div id="grille" class="grille"></div>
     </main>
 
@@ -73,7 +77,6 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <script>
     // Paramètre anti-cache : GitHub Pages doit toujours servir la dernière version de config.js.
-    var v = Date.now();
     document.write('<script src="config.js?v=' + v + '"><\/script>');
     document.write('<script src="app.js?v=' + v + '"><\/script>');
   </script>

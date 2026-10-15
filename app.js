@@ -130,7 +130,7 @@
 
     const moisAnnee = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
     $("#mast-date").textContent = moisAnnee;
-    $("#noms").textContent = `pour ${noms}`;
+    $("#noms").textContent = noms;
     $("#fiche-auteur").textContent = CONFIG.monPrenom || "";
     $("#fiche-contenu").textContent = `${totalBons} bons, ${CONFIG.bons.length} sortes`;
     $("#message").textContent = CONFIG.messageAccueil || "";
@@ -138,13 +138,10 @@
     $("#etape3").textContent = `${CONFIG.monPrenom} reçoit votre message et vous recontacte.`;
     $("#telephone").textContent = CONFIG.monTelephone || "";
 
-    // Photo d'accueil (noir et blanc) si fournie, sinon un bloc rouge façon affiche.
+    // Photo d'accueil facultative, présentée comme un tirage sépia.
     if (CONFIG.photoAccueil) {
       $("#photo-accueil").src = CONFIG.photoAccueil;
       $("#hero-photo").hidden = false;
-      $("#hero-bloc").hidden = true;
-    } else {
-      $("#hero-bloc").textContent = `${totalBons} bons, et un peu de mon temps.`;
     }
 
     const bandeaux = $("#bandeaux");
@@ -231,7 +228,7 @@
       tickets.push(h("span", { class: "ticket" + (utilise ? " utilise" : "") + (pop ? " pop" : "") }));
     }
 
-    const kicker = bon.mystere ? "un bon mystère" : bon.joker ? "un joker pour" : "bon pour";
+    const kicker = bon.mystere ? "Un bon mystère" : bon.joker ? "Un joker pour" : "Bon pour";
     const article = h("article", { class: classes.join(" "), "data-id": bon.id },
       h("div", { class: "bon-meta" },
         h("span", {}, numero(index)),
@@ -292,36 +289,42 @@
       ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.scale(ratio, ratio);
 
-      // Aplat rouge brique façon affiche, avec un grain de pellicule.
-      ctx.fillStyle = "#a8432f";
+      // Bordeaux avec un grain de pellicule et un double filet doré.
+      ctx.fillStyle = "#7b2d26";
       ctx.fillRect(0, 0, l, ht);
       for (let i = 0; i < (l * ht) / 18; i++) {
-        ctx.fillStyle = Math.random() < 0.5 ? "rgba(0, 0, 0, 0.10)" : "rgba(255, 240, 220, 0.08)";
+        ctx.fillStyle = Math.random() < 0.5 ? "rgba(0, 0, 0, 0.10)" : "rgba(255, 240, 220, 0.07)";
         ctx.fillRect(Math.random() * l, Math.random() * ht, 1.5, 1.5);
       }
-
-      ctx.fillStyle = "#efe8da";
-      ctx.strokeStyle = "#efe8da";
+      ctx.strokeStyle = "#d9c49c";
       ctx.lineWidth = 1;
-      ctx.font = "600 13px 'Inter Tight', sans-serif";
+      ctx.strokeRect(10.5, 10.5, l - 21, ht - 21);
+      ctx.strokeRect(15.5, 15.5, l - 31, ht - 31);
+
+      const cx = l / 2;
+      ctx.fillStyle = "#d9c49c";
+      ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.textAlign = "left";
-      ctx.fillText(`${numero(index)}`.toUpperCase(), 24, 38);
-      ctx.textAlign = "right";
-      ctx.fillText("SURPRISE", l - 24, 38);
+      ctx.font = "500 12px Jost, sans-serif";
+      ctx.fillText(`${numero(index)}  ·  SURPRISE`, cx, 52);
+
+      // Ornement : filet — losange — filet
+      const oy = ht / 2 - 78;
       ctx.beginPath();
-      ctx.moveTo(24, 50);
-      ctx.lineTo(l - 24, 50);
+      ctx.moveTo(cx - 70, oy); ctx.lineTo(cx - 12, oy);
+      ctx.moveTo(cx + 12, oy); ctx.lineTo(cx + 70, oy);
+      ctx.moveTo(cx, oy - 5); ctx.lineTo(cx + 5, oy); ctx.lineTo(cx, oy + 5); ctx.lineTo(cx - 5, oy); ctx.closePath();
       ctx.stroke();
 
-      ctx.textAlign = "left";
-      ctx.font = "italic 30px 'Instrument Serif', serif";
-      ctx.fillText("un bon", 24, ht / 2 - 40);
-      ctx.font = "800 54px 'Inter Tight', sans-serif";
-      ctx.fillText("mystère", 22, ht / 2 + 12);
-      ctx.font = "italic 24px 'Instrument Serif', serif";
-      ctx.fillText("Passez la souris dessus", 24, ht / 2 + 56);
-      ctx.fillText("pour le gratter.", 24, ht / 2 + 84);
+      ctx.fillStyle = "#faf6ee";
+      ctx.font = "italic 500 30px 'Cormorant Garamond', serif";
+      ctx.fillText("un bon", cx, ht / 2 - 30);
+      ctx.font = "600 52px 'Cormorant Garamond', serif";
+      ctx.fillText("Mystère", cx, ht / 2 + 18);
+      ctx.fillStyle = "#e3cfc6";
+      ctx.font = "italic 400 23px 'Cormorant Garamond', serif";
+      ctx.fillText("Passez la souris dessus", cx, ht / 2 + 60);
+      ctx.fillText("pour le gratter.", cx, ht / 2 + 86);
 
       ctx.globalCompositeOperation = "destination-out";
       ctx.lineWidth = 70;
@@ -382,7 +385,7 @@
 
     const album = $("#album");
     album.replaceChildren(h("div", { class: "album-entete" },
-      h("h2", { id: "album-titre" }, "nos moments"),
+      h("h2", { id: "album-titre" }, "Nos moments"),
       h("p", { class: "album-sous-titre" }, "sur pellicule")));
 
     // Album vide : une bande de pellicule aux cases encore blanches.
@@ -470,7 +473,7 @@
     const form = h("form", { novalidate: true },
       h("div", { class: "modale-entete" },
         h("p", { class: "modale-kicker" }, [numero(index), bon.categorie].filter(Boolean).join(" — ")),
-        h("h2", { id: "modale-titre" }, bon.joker ? "utiliser un joker" : bon.titre),
+        h("h2", { id: "modale-titre" }, bon.joker ? "Utiliser un joker" : bon.titre),
         h("p", { class: "modale-sous-titre" }, sousTitre)),
       groupeChoix("quand", "Quand ?", ["En semaine", "Le week-end", PEU_IMPORTE]),
       groupeChoix("moment", "À quel moment ?", ["Le matin", "L'après-midi", PEU_IMPORTE]),
@@ -544,7 +547,7 @@
       "Voir mon carnet");
     panneau.replaceChildren(h("div", { class: "succes" },
       h("div", { class: "tampon-merci", "aria-hidden": "true" }, "merci"),
-      h("h2", { id: "modale-titre" }, "c'est envoyé."),
+      h("h2", { id: "modale-titre" }, "C'est envoyé"),
       h("p", {}, `${CONFIG.monPrenom} a bien reçu votre message et vous recontacte très vite.`),
       MODE_TEST && h("p", { class: "note-test" }, "(Mode test : le bon n'a pas été consommé.)"),
       bouton));
@@ -614,7 +617,7 @@
   function lancerConfettis() {
     if (typeof confetti !== "function") return;
     const options = {
-      colors: ["#a8432f", "#171512", "#efe8da", "#8b7355", "#c9bfac"],
+      colors: ["#7b2d26", "#b08d57", "#d9c49c", "#faf6ee", "#2d241e"],
       shapes: ["square"],
       zIndex: 1000,
       disableForReducedMotion: true,
