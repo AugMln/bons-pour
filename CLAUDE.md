@@ -15,6 +15,8 @@ Page web statique : un carnet de « bons pour » (jardinage, bricolage, aide inf
 - Chaque type de bon existe en `quantite` exemplaires (défaut `CONFIG.quantiteParDefaut` = 3). Pas de choix « qui utilise ».
 - Une utilisation = `{ uid, bon, date, message }`. État = union, dédoublonnée par `uid`, de `CONFIG.dejaUtilises` (tableau, synchronisé par moi via GitHub) et du localStorage `bons-v2` (local au PC). L'email contient la ligne exacte à coller dans `dejaUtilises`. Tout accès localStorage est dans un try/catch.
 - Un envoi qui échoue ne consomme **jamais** le bon.
+- Champs que j'ajoute ensuite sur une utilisation : `prevu` (statut « Prévu le » puis « Fait le » + encadré « Prochain rendez-vous »), `photo` / `legende` (album « Nos moments », images dans `photos/`).
+- Un bon `mystere: true` est caché sous une couche à gratter (canvas, gratter au simple survol + bouton de secours). Découverte mémorisée dans le localStorage `bons-mystere-v1`.
 - Garder ça simple : pas de comptes, pas de base de données, pas de PWA (voir « Hors périmètre » dans PLAN.md).
 
 ## Tester

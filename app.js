@@ -3,10 +3,12 @@
   "use strict";
 
   const CLE_STOCKAGE = "bons-v2";
+  const CLE_MYSTERE = "bons-mystere-v1";
   const ANCIENNES_CLES = ["bons-v1"];
   const URL_WEB3FORMS = "https://api.web3forms.com/submit";
   const DELAI_ENVOI_MS = 15000;
   const TEINTES = ["#ffe4d6", "#dff3e6", "#e4e8ff", "#fff1c7", "#fde2ec", "#d9f1f6", "#eee5ff", "#ecf3d6"];
+  const PEU_IMPORTE = "Peu importe";
 
   const params = new URLSearchParams(window.location.search);
   const MODE_TEST = params.has("test");
@@ -16,10 +18,10 @@
     return;
   }
 
-  // ?reset=1 : remet à zéro les bons utilisés sur ce PC.
+  // ?reset=1 : remet à zéro les bons utilisés (et le bon mystère) sur ce PC.
   if (params.has("reset")) {
     if (window.confirm("Remettre à zéro les bons utilisés sur cet ordinateur ?")) {
-      for (const cle of [CLE_STOCKAGE, ...ANCIENNES_CLES]) {
+      for (const cle of [CLE_STOCKAGE, CLE_MYSTERE, ...ANCIENNES_CLES]) {
         try { localStorage.removeItem(cle); } catch (e) { /* stockage indisponible */ }
       }
     }
@@ -29,6 +31,7 @@
 
   const prenoms = CONFIG.prenoms || [];
   const dejaUtilises = Array.isArray(CONFIG.dejaUtilises) ? CONFIG.dejaUtilises : [];
+  const bonsParId = new Map(CONFIG.bons.map((b) => [b.id, b]));
   const $ = (sel) => document.querySelector(sel);
 
   const page = $("#page");
@@ -57,27 +60,27 @@
     return el;
   }
 
-  function lireLocal() {
+  function lireListe(cle) {
     try {
-      const liste = JSON.parse(localStorage.getItem(CLE_STOCKAGE));
+      const liste = JSON.parse(localStorage.getItem(cle));
       return Array.isArray(liste) ? liste : [];
     } catch (e) {
       return [];
     }
   }
 
-  function ecrireLocal(liste) {
+  function ecrireListe(cle, liste) {
     try {
-      localStorage.setItem(CLE_STOCKAGE, JSON.stringify(liste));
+      localStorage.setItem(cle, JSON.stringify(liste));
     } catch (e) {
       console.warn("Impossible d'enregistrer dans localStorage", e);
     }
   }
 
-  // Toutes les utilisations connues : config.js (synchronisé par moi) + ce PC, dédoublonnées par uid.
+  // Toutes les utilisations connues : ce PC + config.js (prioritaire, synchronisé par moi), dédoublonnées par uid.
   function toutesUtilisations() {
     const parUid = new Map();
-    for (const u of lireLocal()) if (u && u.uid) parUid.set(u.uid, u);
+    for (const u of lireListe(CLE_STOCKAGE)) if (u && u.uid) parUid.set(u.uid, u);
     for (const u of dejaUtilises) if (u && u.bon) parUid.set(u.uid || Math.random(), u);
     return [...parUid.values()];
   }
@@ -96,16 +99,27 @@
     return `${d.getFullYear()}-${deux(d.getMonth() + 1)}-${deux(d.getDate())}`;
   }
 
-  function dateLisible(iso) {
+  function dateLisible(iso, avecJour) {
     if (!iso) return "";
     const [annee, mois, jour] = String(iso).split("-").map(Number);
     const d = new Date(annee, (mois || 1) - 1, jour || 1);
     if (isNaN(d)) return String(iso);
-    return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+    const options = { day: "numeric", month: "long", year: "numeric" };
+    if (avecJour) options.weekday = "long";
+    return d.toLocaleDateString("fr-FR", options);
   }
 
   function teinte(bon, index) {
     return bon.couleur || TEINTES[index % TEINTES.length];
+  }
+
+  // Demandé → Prévu le … (date fixée par moi dans config.js) → Fait le …
+  function statut(u) {
+    if (u.prevu && u.prevu >= aujourdhuiISO()) {
+      return { classe: "statut-prevu", texte: `📅 Prévu le ${dateLisible(u.prevu, true)}` };
+    }
+    if (u.prevu) return { classe: "statut-fait", texte: `✓ Fait le ${dateLisible(u.prevu)}` };
+    return { classe: "statut-attente", texte: `⏳ Demandé le ${dateLisible(u.date)}` };
   }
 
   // ---------- En-tête ----------
@@ -133,8 +147,35 @@
 
   // ---------- Carnet ----------
 
-  function rendreCarnet(idAnime) {
+  function rendre(idAnime) {
     const utilisations = toutesUtilisations();
+    rendreProchain(utilisations);
+    rendreCarnet(utilisations, idAnime);
+    rendreAlbum(utilisations);
+  }
+
+  function rendreProchain(utilisations) {
+    const auj = aujourdhuiISO();
+    const aVenir = utilisations
+      .filter((u) => u.prevu && u.prevu >= auj && bonsParId.has(u.bon))
+      .sort((a, b) => a.prevu.localeCompare(b.prevu));
+    const el = $("#prochain");
+    if (aVenir.length === 0) {
+      el.hidden = true;
+      return;
+    }
+    const u = aVenir[0];
+    const bon = bonsParId.get(u.bon);
+    el.replaceChildren(
+      h("span", { class: "prochain-icone", "aria-hidden": "true" }, "📅"),
+      h("span", {},
+        h("span", { class: "prochain-label" }, "Prochain rendez-vous"),
+        h("strong", {}, `${bon.emoji} ${bon.joker && u.message ? u.message : bon.titre}`),
+        h("span", { class: "prochain-date" }, dateLisible(u.prevu, true))));
+    el.hidden = false;
+  }
+
+  function rendreCarnet(utilisations, idAnime) {
     const grille = $("#grille");
     let total = 0;
     let restantsTotal = 0;
@@ -168,6 +209,7 @@
 
     const classes = ["bon"];
     if (bon.joker) classes.push("bon-joker");
+    if (bon.mystere) classes.push("bon-mystere");
     if (epuise) classes.push("bon-epuise");
 
     // Tickets : d'abord les disponibles, puis les utilisés. Le dernier utilisé « saute » après un envoi.
@@ -178,19 +220,23 @@
       tickets.push(h("span", { class: "ticket" + (utilise ? " utilise" : "") + (pop ? " pop" : "") }));
     }
 
-    return h("article", { class: classes.join(" "), "data-id": bon.id },
+    const etiquette = bon.mystere ? "Surprise" : bon.joker ? "Joker" : "Bon pour";
+    const article = h("article", { class: classes.join(" "), "data-id": bon.id },
       h("div", { class: "bon-haut" },
         h("div", { class: "bon-tuile", style: `--teinte: ${teinte(bon, index)}`, "aria-hidden": "true" }, bon.emoji),
-        h("span", { class: "bon-etiquette" }, bon.joker ? "Joker" : "Bon pour")),
+        h("span", { class: "bon-etiquette" }, etiquette)),
       h("h3", { class: "bon-titre" }, bon.titre),
       bon.detail && h("p", { class: "bon-detail" }, bon.detail),
       h("div", { class: "bon-stock" },
         h("div", { class: "tickets", "aria-hidden": "true" }, tickets),
         h("span", { class: "stock-texte" },
-          epuise ? "Tous utilisés" : `${restants} ${restants > 1 ? "restants" : "restant"} sur ${max}`)),
+          epuise ? (max > 1 ? "Tous utilisés" : "Utilisé")
+            : `${restants} ${restants > 1 ? "restants" : "restant"} sur ${max}`)),
       usages.length > 0 && h("ul", { class: "bon-historique" },
-        usages.map((u) => h("li", {},
-          `Utilisé le ${dateLisible(u.date)}`, u.message ? ` · « ${u.message} »` : ""))),
+        usages.map((u) => {
+          const s = statut(u);
+          return h("li", { class: s.classe }, s.texte, u.message ? ` · « ${u.message} »` : "");
+        })),
       h("p", { class: "bon-offert print-only" }, `Offert avec tout mon amour par ${CONFIG.monPrenom}`),
       h("div", { class: "bon-actions" },
         epuise
@@ -199,6 +245,137 @@
             bon.joker ? "Utiliser un joker" : "Utiliser ce bon"),
         h("button", { type: "button", class: "btn btn-secondaire", onclick: () => imprimer(bon.id) },
           "🖨️ Imprimer")));
+
+    if (bon.mystere && usages.length === 0 && !lireListe(CLE_MYSTERE).includes(bon.id)) {
+      ajouterGrattage(article, bon);
+    }
+    return article;
+  }
+
+  // ---------- Bon mystère à gratter ----------
+
+  function ajouterGrattage(article, bon) {
+    const canvas = h("canvas", { class: "grattage", "aria-hidden": "true" });
+    const boutonDecouvrir = h("button", { type: "button", class: "btn-decouvrir" }, "Ou cliquez ici pour découvrir");
+    const couche = h("div", { class: "couche-mystere" }, canvas, boutonDecouvrir);
+    const contenu = [...article.children];
+
+    contenu.forEach((el) => { el.inert = true; });
+    article.append(couche);
+
+    let ctx = null;
+    let dernier = null;
+    let mouvements = 0;
+    let fini = false;
+
+    function dessiner() {
+      if (!canvas.isConnected) return;
+      const ratio = window.devicePixelRatio || 1;
+      const l = canvas.clientWidth;
+      const ht = canvas.clientHeight;
+      canvas.width = l * ratio;
+      canvas.height = ht * ratio;
+      ctx = canvas.getContext("2d", { willReadFrequently: true });
+      ctx.scale(ratio, ratio);
+
+      const degrade = ctx.createLinearGradient(0, 0, l, ht);
+      degrade.addColorStop(0, "#ff8a5c");
+      degrade.addColorStop(1, "#6d4aff");
+      ctx.fillStyle = degrade;
+      ctx.fillRect(0, 0, l, ht);
+
+      ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+      for (let i = 0; i < 70; i++) {
+        ctx.beginPath();
+        ctx.arc(Math.random() * l, Math.random() * ht, 2 + Math.random() * 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "#fff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.font = "64px sans-serif";
+      ctx.fillText("🎁", l / 2, ht / 2 - 90);
+      ctx.font = "800 34px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText("Bon mystère", l / 2, ht / 2 - 20);
+      ctx.font = "700 19px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText("Passez la souris dessus", l / 2, ht / 2 + 22);
+      ctx.fillText("pour gratter !", l / 2, ht / 2 + 48);
+
+      ctx.globalCompositeOperation = "destination-out";
+      ctx.lineWidth = 70;
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+    }
+
+    function proportionGrattee() {
+      const donnees = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      let vides = 0;
+      let echantillons = 0;
+      for (let i = 3; i < donnees.length; i += 4 * 16) {
+        echantillons++;
+        if (donnees[i] === 0) vides++;
+      }
+      return echantillons ? vides / echantillons : 1;
+    }
+
+    function devoiler() {
+      if (fini) return;
+      fini = true;
+      ecrireListe(CLE_MYSTERE, [...lireListe(CLE_MYSTERE), bon.id]);
+      contenu.forEach((el) => { el.inert = false; });
+      couche.classList.add("disparait");
+      setTimeout(() => couche.remove(), 800);
+      lancerConfettis();
+    }
+
+    // Gratter au simple passage de la souris (pas besoin de cliquer), ou au doigt sur écran tactile.
+    canvas.addEventListener("pointermove", (ev) => {
+      if (fini || !ctx) return;
+      const r = canvas.getBoundingClientRect();
+      const x = ev.clientX - r.left;
+      const y = ev.clientY - r.top;
+      ctx.beginPath();
+      ctx.moveTo(dernier ? dernier.x : x, dernier ? dernier.y : y);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+      dernier = { x, y };
+      if (++mouvements % 12 === 0 && proportionGrattee() > 0.5) devoiler();
+    });
+    canvas.addEventListener("pointerleave", () => { dernier = null; });
+    boutonDecouvrir.addEventListener("click", devoiler);
+
+    // Dessiner une fois la carte placée dans la page et la police chargée.
+    requestAnimationFrame(() => {
+      dessiner();
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { if (mouvements === 0) dessiner(); });
+    });
+  }
+
+  // ---------- Album « Nos moments » ----------
+
+  function rendreAlbum(utilisations) {
+    const avecPhoto = utilisations
+      .filter((u) => u.photo && bonsParId.has(u.bon))
+      .sort((a, b) => String(b.prevu || b.date).localeCompare(String(a.prevu || a.date)));
+
+    const album = $("#album");
+    album.replaceChildren(h("h2", { id: "album-titre" }, "📸 Nos moments"));
+    if (avecPhoto.length === 0) {
+      album.append(h("p", { class: "album-vide" },
+        `Après chaque bon, ${CONFIG.monPrenom} ajoutera ici une photo de votre moment ensemble 💛`));
+      return;
+    }
+    album.append(h("div", { class: "album-grille" },
+      avecPhoto.map((u) => {
+        const bon = bonsParId.get(u.bon);
+        return h("figure", { class: "moment" },
+          h("a", { href: u.photo, target: "_blank", rel: "noopener" },
+            h("img", { src: u.photo, alt: u.legende || bon.titre, loading: "lazy" })),
+          h("figcaption", {},
+            h("strong", {}, u.legende || `${bon.emoji} ${bon.titre}`),
+            h("span", {}, dateLisible(u.prevu || u.date))));
+      })));
   }
 
   // ---------- Modale ----------
@@ -209,7 +386,7 @@
     modale.hidden = false;
     page.inert = true;
     document.body.classList.add("modale-ouverte");
-    $("#mot")?.focus();
+    panneau.querySelector("input:checked")?.focus();
   }
 
   function fermerModale() {
@@ -221,7 +398,7 @@
     if (animerApresFermeture) {
       const id = animerApresFermeture;
       animerApresFermeture = null;
-      rendreCarnet(id);
+      rendre(id);
       const c = document.querySelector(`.bon[data-id="${CSS.escape(id)}"]`);
       if (c) {
         c.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -232,18 +409,31 @@
     }
   }
 
+  // Groupe de gros boutons à choix unique ; « Peu importe » est coché par défaut.
+  function groupeChoix(nom, legende, options) {
+    return h("fieldset", { class: "groupe" },
+      h("legend", { class: "etiquette" }, legende),
+      h("div", { class: "choix-liste" },
+        options.map((option) => {
+          const defaut = option === PEU_IMPORTE;
+          return h("label", { class: "choix" + (defaut ? " coche" : "") },
+            h("input", { type: "radio", name: nom, value: option, checked: defaut }),
+            h("span", {}, option));
+        })));
+  }
+
   function afficherFormulaire(bon, index, restants) {
     const apres = restants - 1;
     const sousTitre = apres === 0
-      ? "C'est le dernier de ce type !"
+      ? (quantite(bon) > 1 ? "C'est le dernier de ce type !" : "Profitez-en bien !")
       : `Il vous en restera ${apres} après celui-ci.`;
 
     const zone = h("textarea", {
       id: "mot",
-      rows: "4",
+      rows: "3",
       placeholder: bon.joker
         ? "Par exemple : m'aider à installer la nouvelle imprimante"
-        : "Par exemple : plutôt un samedi matin",
+        : "Par exemple : j'aimerais tailler la haie",
     });
     const erreur = h("p", { class: "erreur", role: "alert", hidden: true });
     const boutonEnvoyer = h("button", { type: "submit", class: "btn btn-principal btn-grand" },
@@ -254,6 +444,8 @@
         h("div", { class: "bon-tuile", style: `--teinte: ${teinte(bon, index)}`, "aria-hidden": "true" }, bon.emoji),
         h("h2", { id: "modale-titre" }, bon.joker ? "Utiliser un joker" : bon.titre),
         h("p", { class: "modale-sous-titre" }, sousTitre)),
+      groupeChoix("quand", "Quand ?", ["En semaine", "Le week-end", PEU_IMPORTE]),
+      groupeChoix("moment", "À quel moment ?", ["Le matin", "L'après-midi", PEU_IMPORTE]),
       h("label", { for: "mot", class: "etiquette" },
         bon.joker ? "De quoi avez-vous besoin ?" : "Un petit mot ? (facultatif)"),
       zone,
@@ -261,6 +453,14 @@
       h("div", { class: "modale-actions" },
         boutonEnvoyer,
         h("button", { type: "button", class: "btn btn-secondaire", onclick: fermerModale }, "Annuler")));
+
+    // Coloration du choix coché (sans dépendre de :has()).
+    form.addEventListener("change", (ev) => {
+      if (ev.target.type !== "radio") return;
+      form.querySelectorAll(`input[name="${ev.target.name}"]`).forEach((input) => {
+        input.closest(".choix").classList.toggle("coche", input.checked);
+      });
+    });
 
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
@@ -273,7 +473,12 @@
         return;
       }
 
-      const utilisation = { uid: nouvelUid(), bon: bon.id, date: aujourdhuiISO(), message };
+      const creneau = ["quand", "moment"]
+        .map((nom) => form.querySelector(`input[name="${nom}"]:checked`)?.value)
+        .filter((v) => v && v !== PEU_IMPORTE)
+        .join(", ");
+      const utilisation = { uid: nouvelUid(), bon: bon.id, date: aujourdhuiISO(), message, creneau };
+
       erreur.hidden = true;
       envoiEnCours = true;
       boutonEnvoyer.disabled = true;
@@ -303,7 +508,7 @@
 
   function afficherSucces(utilisation) {
     if (!MODE_TEST) {
-      ecrireLocal([...lireLocal(), utilisation]);
+      ecrireListe(CLE_STOCKAGE, [...lireListe(CLE_STOCKAGE), utilisation]);
       animerApresFermeture = utilisation.bon;
     }
 
@@ -328,6 +533,7 @@
   function ligneConfig(u) {
     const champs = [`uid: ${JSON.stringify(u.uid)}`, `bon: ${JSON.stringify(u.bon)}`, `date: ${JSON.stringify(u.date)}`];
     if (u.message) champs.push(`message: ${JSON.stringify(u.message)}`);
+    if (u.creneau) champs.push(`creneau: ${JSON.stringify(u.creneau)}`);
     return `{ ${champs.join(", ")} },`;
   }
 
@@ -357,10 +563,12 @@
           subject: sujet,
           from_name: "Carnet de bons",
           "Bon": `${bon.emoji} ${bon.titre}`,
+          "Créneau souhaité": utilisation.creneau || PEU_IMPORTE,
           "Message": utilisation.message || "(pas de message)",
-          "Date": dateLisible(utilisation.date),
+          "Date de la demande": dateLisible(utilisation.date),
           "Il en reste": `${restantsApres} sur ${quantite(bon)}`,
           "À copier dans config.js (dejaUtilises)": ligneConfig(utilisation),
+          "Ensuite": 'Ajouter  prevu: "AAAA-MM-JJ"  quand la date est fixée, puis  photo: "photos/xxx.jpg"  pour l\'album.',
         }),
         signal: controle.signal,
       });
@@ -406,5 +614,5 @@
   // ---------- Démarrage ----------
 
   rendreEntete();
-  rendreCarnet();
+  rendre();
 })();

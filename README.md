@@ -28,6 +28,13 @@ dejaUtilises: [
 ```
 Faites ensuite `git pull`, puis `git commit -am "Bon jardin utilisé" && git push`. Après une minute, l'utilisation apparaît sur les deux ordinateurs. Grâce au `uid`, elle n'est jamais comptée deux fois.
 
+## 5. Faire vivre le carnet
+Sur la ligne d'une utilisation dans `dejaUtilises`, ajoutez :
+- `prevu: "2026-10-25"` quand la date est fixée. La carte affiche « 📅 Prévu le dimanche 25 octobre » et un encadré « Prochain rendez-vous » apparaît en haut. Une fois la date passée, la ligne devient « ✓ Fait le… ».
+- `photo: "photos/jardin.jpg"` et éventuellement `legende: "…"`. Mettez la photo dans le dossier `photos/` : elle apparaît dans l'album « Nos moments ». Pensez à réduire la photo à environ 1600px de large pour qu'elle charge vite.
+
+**Bon mystère** : c'est le bon `mystere: true` de `config.js`. On le gratte en passant la souris dessus. Chaque PC le découvre une fois. Choisissez votre surprise en modifiant son emoji, son titre et son détail.
+
 ## Raccourcis utiles
 - `?test=1` : mode test.
 - `?reset=1` : remet à zéro les bons utilisés **sur ce PC** (par exemple après un clic par erreur). Ce paramètre ne touche pas `dejaUtilises`.

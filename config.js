@@ -20,7 +20,9 @@ const CONFIG = {
 
   // L'id doit être unique et ne plus changer. `couleur` (facultatif) = fond de la tuile emoji.
   bons: [
-    { id: "jardin",  emoji: "🌱", titre: "1h de jardinage",               detail: "Tonte, taille, désherbage…" },
+    // Bon mystère : caché sous une couche à gratter. ⚠️ Choisissez votre surprise !
+    { id: "mystere", emoji: "🍽️", titre: "Un resto tous les trois",       detail: "Vous choisissez l'endroit, c'est moi qui invite !", quantite: 1, mystere: true },
+    { id: "jardin", emoji: "🌱", titre: "1h de jardinage",               detail: "Tonte, taille, désherbage…" },
     { id: "brico",   emoji: "🔨", titre: "1h de bricolage",               detail: "Une étagère, une ampoule, un meuble à monter" },
     { id: "techno",  emoji: "💻", titre: "1h d'aide informatique",        detail: "Téléphone, ordinateur, photos, WhatsApp…" },
     { id: "repas",   emoji: "🍲", titre: "Un repas cuisiné par moi",      detail: "Vous mettez les pieds sous la table" },
@@ -33,7 +35,11 @@ const CONFIG = {
 
   // Quand je reçois un email, je colle ici la ligne « À copier » qu'il contient,
   // puis je pousse sur GitHub : l'utilisation apparaît sur les deux ordinateurs.
+  // Ensuite, sur la même ligne :
+  //   prevu: "2026-10-25"          → « 📅 Prévu le samedi 25 octobre » (puis « ✓ Fait le… » une fois passé)
+  //   photo: "photos/jardin.jpg"   → la photo apparaît dans l'album « Nos moments »
+  //   legende: "La haie est enfin taillée !"  (facultatif, sous la photo)
   dejaUtilises: [
-    // { uid: "lz8k2a9f", bon: "jardin", date: "2026-10-20", message: "Plutôt un samedi matin" },
+    // { uid: "lz8k2a9f", bon: "jardin", date: "2026-10-20", message: "Plutôt un samedi matin", prevu: "2026-10-25", photo: "photos/jardin.jpg" },
   ],
 };
