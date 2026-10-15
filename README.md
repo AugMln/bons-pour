@@ -20,13 +20,13 @@ git push -u origin main
 Sur GitHub, allez dans **Settings → Pages → Source : Deploy from a branch → `main` / `(root)`**. L'adresse est `https://<vous>.github.io/bon-pour/`.
 
 ## 4. Quand vous recevez un email : synchroniser les deux PC
-L'email contient l'**identifiant** du bon. Ajoutez une ligne dans `dejaUtilises` de `config.js` :
+L'email contient une ligne **« À copier dans config.js »**. Collez-la telle quelle dans `dejaUtilises` :
 ```js
-dejaUtilises: {
-  jardin: { par: "Mamie", date: "2026-10-20", message: "Plutôt un samedi matin" },
-},
+dejaUtilises: [
+  { uid: "lz8k2a9f", bon: "jardin", date: "2026-10-20", message: "Plutôt un samedi matin" },
+],
 ```
-Faites ensuite `git commit -am "Bon jardin utilisé" && git push`. Après une minute, le bon apparaît comme utilisé sur les deux ordinateurs.
+Faites ensuite `git pull`, puis `git commit -am "Bon jardin utilisé" && git push`. Après une minute, l'utilisation apparaît sur les deux ordinateurs. Grâce au `uid`, elle n'est jamais comptée deux fois.
 
 ## Raccourcis utiles
 - `?test=1` : mode test.

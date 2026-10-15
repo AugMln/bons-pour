@@ -12,7 +12,8 @@ Page web statique : un carnet de « bons pour » (jardinage, bricolage, aide inf
 - **Aucun build, aucun npm, aucun framework.** HTML/CSS/JS vanilla. Seule dépendance : `canvas-confetti@1.9.3` (jsDelivr), facultative (la page marche sans).
 - Interface en **français**, on **vouvoie** les grands-parents (ils sont deux), ton affectueux.
 - Accessibilité « grands-parents » : base 20px, boutons ≥ 56px de haut, fort contraste, pas d'icône sans texte, rien qui dépende du survol, pas de fermeture accidentelle de la modale (pas de clic hors cadre).
-- État des bons = union de `CONFIG.dejaUtilises` (prioritaire, synchronisé par moi via GitHub) et du localStorage `bons-v1` (local au PC). Tout accès localStorage est dans un try/catch.
+- Chaque type de bon existe en `quantite` exemplaires (défaut `CONFIG.quantiteParDefaut` = 3). Pas de choix « qui utilise ».
+- Une utilisation = `{ uid, bon, date, message }`. État = union, dédoublonnée par `uid`, de `CONFIG.dejaUtilises` (tableau, synchronisé par moi via GitHub) et du localStorage `bons-v2` (local au PC). L'email contient la ligne exacte à coller dans `dejaUtilises`. Tout accès localStorage est dans un try/catch.
 - Un envoi qui échoue ne consomme **jamais** le bon.
 - Garder ça simple : pas de comptes, pas de base de données, pas de PWA (voir « Hors périmètre » dans PLAN.md).
 
@@ -22,4 +23,4 @@ Page web statique : un carnet de « bons pour » (jardinage, bricolage, aide inf
 - `?reset=1` : vide le localStorage de ce PC (après confirmation).
 
 ## Déploiement
-GitHub Pages (branche `main`, dossier racine). Après chaque email reçu, ajouter le bon dans `dejaUtilises` de `config.js` et pousser.
+GitHub Pages (branche `main`, dossier racine), site : https://augmln.github.io/bons-pour/. Après chaque email reçu, coller sa ligne « À copier » dans `dejaUtilises` de `config.js`, puis `git pull` et `git push`.

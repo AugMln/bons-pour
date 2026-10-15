@@ -15,23 +15,25 @@ const CONFIG = {
   // Affiché si l'envoi échoue.
   monTelephone: "07 83 70 82 46",
 
-  // Chaque bon ne peut être utilisé qu'une seule fois. L'id doit être unique et ne plus changer.
+  // Nombre d'exemplaires de chaque bon (modifiable bon par bon avec `quantite: 5`).
+  quantiteParDefaut: 3,
+
+  // L'id doit être unique et ne plus changer. `couleur` (facultatif) = fond de la tuile emoji.
   bons: [
     { id: "jardin",  emoji: "🌱", titre: "1h de jardinage",               detail: "Tonte, taille, désherbage…" },
     { id: "brico",   emoji: "🔨", titre: "1h de bricolage",               detail: "Une étagère, une ampoule, un meuble à monter" },
     { id: "techno",  emoji: "💻", titre: "1h d'aide informatique",        detail: "Téléphone, ordinateur, photos, WhatsApp…" },
     { id: "repas",   emoji: "🍲", titre: "Un repas cuisiné par moi",      detail: "Vous mettez les pieds sous la table" },
     { id: "jeux",    emoji: "🎲", titre: "Un après-midi jeux de société", detail: "Belote, Scrabble, ou ce que vous voulez" },
-    { id: "balade",  emoji: "🚶", titre: "Une balade ensemble",           detail: "" },
+    { id: "balade",  emoji: "🚶", titre: "Une balade ensemble",           detail: "Où vous voulez, au rythme que vous voulez" },
     { id: "courses", emoji: "🛒", titre: "Les grosses courses",           detail: "Je porte, vous choisissez" },
-    { id: "photos",  emoji: "📸", titre: "Trier et numériser vos photos", detail: "" },
-    { id: "joker1",  emoji: "🃏", titre: "Ce que vous voulez !",          detail: "Demandez-moi ce dont vous avez besoin", joker: true },
-    { id: "joker2",  emoji: "🃏", titre: "Ce que vous voulez !",          detail: "Demandez-moi ce dont vous avez besoin", joker: true },
+    { id: "photos",  emoji: "📸", titre: "Trier et numériser vos photos", detail: "Pour ne plus jamais les perdre" },
+    { id: "joker",   emoji: "🃏", titre: "Ce que vous voulez !",          detail: "Demandez-moi ce dont vous avez besoin", joker: true },
   ],
 
-  // Quand je reçois un email, j'ajoute le bon ici et je pousse sur GitHub :
-  // il apparaîtra comme utilisé sur les deux ordinateurs.
-  dejaUtilises: {
-    // jardin: { par: "Mamie", date: "2026-10-20", message: "Plutôt un samedi matin" },
-  },
+  // Quand je reçois un email, je colle ici la ligne « À copier » qu'il contient,
+  // puis je pousse sur GitHub : l'utilisation apparaît sur les deux ordinateurs.
+  dejaUtilises: [
+    // { uid: "lz8k2a9f", bon: "jardin", date: "2026-10-20", message: "Plutôt un samedi matin" },
+  ],
 };

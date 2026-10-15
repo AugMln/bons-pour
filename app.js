@@ -2,9 +2,11 @@
 (function () {
   "use strict";
 
-  const CLE_STOCKAGE = "bons-v1";
+  const CLE_STOCKAGE = "bons-v2";
+  const ANCIENNES_CLES = ["bons-v1"];
   const URL_WEB3FORMS = "https://api.web3forms.com/submit";
   const DELAI_ENVOI_MS = 15000;
+  const TEINTES = ["#ffe4d6", "#dff3e6", "#e4e8ff", "#fff1c7", "#fde2ec", "#d9f1f6", "#eee5ff", "#ecf3d6"];
 
   const params = new URLSearchParams(window.location.search);
   const MODE_TEST = params.has("test");
@@ -17,14 +19,16 @@
   // ?reset=1 : remet à zéro les bons utilisés sur ce PC.
   if (params.has("reset")) {
     if (window.confirm("Remettre à zéro les bons utilisés sur cet ordinateur ?")) {
-      try { localStorage.removeItem(CLE_STOCKAGE); } catch (e) { /* stockage indisponible */ }
+      for (const cle of [CLE_STOCKAGE, ...ANCIENNES_CLES]) {
+        try { localStorage.removeItem(cle); } catch (e) { /* stockage indisponible */ }
+      }
     }
     window.location.replace(window.location.pathname);
     return;
   }
 
   const prenoms = CONFIG.prenoms || [];
-  const dejaUtilises = CONFIG.dejaUtilises || {};
+  const dejaUtilises = Array.isArray(CONFIG.dejaUtilises) ? CONFIG.dejaUtilises : [];
   const $ = (sel) => document.querySelector(sel);
 
   const page = $("#page");
@@ -42,6 +46,7 @@
     for (const [cle, valeur] of Object.entries(attrs || {})) {
       if (valeur == null || valeur === false) continue;
       if (cle === "class") el.className = valeur;
+      else if (cle === "style") el.style.cssText = valeur;
       else if (cle.startsWith("on")) el.addEventListener(cle.slice(2), valeur);
       else el.setAttribute(cle, valeur === true ? "" : valeur);
     }
@@ -54,24 +59,35 @@
 
   function lireLocal() {
     try {
-      const etat = JSON.parse(localStorage.getItem(CLE_STOCKAGE));
-      return etat && typeof etat === "object" ? etat : {};
+      const liste = JSON.parse(localStorage.getItem(CLE_STOCKAGE));
+      return Array.isArray(liste) ? liste : [];
     } catch (e) {
-      return {};
+      return [];
     }
   }
 
-  function ecrireLocal(etat) {
+  function ecrireLocal(liste) {
     try {
-      localStorage.setItem(CLE_STOCKAGE, JSON.stringify(etat));
+      localStorage.setItem(CLE_STOCKAGE, JSON.stringify(liste));
     } catch (e) {
       console.warn("Impossible d'enregistrer dans localStorage", e);
     }
   }
 
-  // config.js (synchronisé par moi) est prioritaire sur le localStorage du PC.
-  function utilisation(id, local) {
-    return dejaUtilises[id] || local[id] || null;
+  // Toutes les utilisations connues : config.js (synchronisé par moi) + ce PC, dédoublonnées par uid.
+  function toutesUtilisations() {
+    const parUid = new Map();
+    for (const u of lireLocal()) if (u && u.uid) parUid.set(u.uid, u);
+    for (const u of dejaUtilises) if (u && u.bon) parUid.set(u.uid || Math.random(), u);
+    return [...parUid.values()];
+  }
+
+  function quantite(bon) {
+    return bon.quantite || CONFIG.quantiteParDefaut || 1;
+  }
+
+  function nouvelUid() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
   }
 
   function aujourdhuiISO() {
@@ -88,14 +104,19 @@
     return d.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
   }
 
+  function teinte(bon, index) {
+    return bon.couleur || TEINTES[index % TEINTES.length];
+  }
+
   // ---------- En-tête ----------
 
   function rendreEntete() {
     const noms = prenoms.join(" & ");
     document.title = `Les bons de ${noms}`;
-    $("#titre").textContent = `Joyeux anniversaire ${noms} !`;
+    $("#titre").replaceChildren("Joyeux anniversaire", h("span", { class: "noms" }, noms));
     $("#message").textContent = CONFIG.messageAccueil || "";
-    $("#signature").textContent = CONFIG.monPrenom ? `— ${CONFIG.monPrenom}` : "";
+    $("#avatar").textContent = (CONFIG.monPrenom || "?").charAt(0).toUpperCase();
+    $("#signature").textContent = `Avec tout mon amour, ${CONFIG.monPrenom}`;
     $("#etape3").textContent = `${CONFIG.monPrenom} reçoit votre message et vous recontacte`;
     $("#telephone").textContent = CONFIG.monTelephone || "";
 
@@ -113,61 +134,82 @@
   // ---------- Carnet ----------
 
   function rendreCarnet(idAnime) {
-    const local = lireLocal();
+    const utilisations = toutesUtilisations();
     const grille = $("#grille");
-    let restants = 0;
+    let total = 0;
+    let restantsTotal = 0;
 
     grille.replaceChildren();
-    for (const bon of CONFIG.bons) {
-      const u = utilisation(bon.id, local);
-      if (!u) restants++;
-      grille.append(carte(bon, u, bon.id === idAnime));
-    }
+    CONFIG.bons.forEach((bon, i) => {
+      const usages = utilisations
+        .filter((u) => u.bon === bon.id)
+        .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+      const max = quantite(bon);
+      total += max;
+      restantsTotal += Math.max(0, max - usages.length);
+      grille.append(carte(bon, i, usages, bon.id === idAnime));
+    });
 
-    const total = CONFIG.bons.length;
     const compteur = $("#compteur");
-    if (restants === 0) {
+    if (restantsTotal === 0) {
       compteur.textContent = "Tous les bons ont été utilisés ! Un nouveau carnet arrive bientôt… 😉";
     } else {
       compteur.replaceChildren(
-        "Il vous reste ", h("strong", {}, String(restants)),
-        restants > 1 ? ` bons sur ${total}` : ` bon sur ${total}`);
+        "Il vous reste ", h("strong", {}, String(restantsTotal)),
+        restantsTotal > 1 ? ` bons sur ${total}` : ` bon sur ${total}`);
     }
+    $("#jauge").style.width = total ? `${(restantsTotal / total) * 100}%` : "0";
   }
 
-  function carte(bon, u, animer) {
+  function carte(bon, index, usages, animer) {
+    const max = quantite(bon);
+    const restants = Math.max(0, max - usages.length);
+    const epuise = restants === 0;
+
     const classes = ["bon"];
     if (bon.joker) classes.push("bon-joker");
-    if (u) classes.push("bon-utilise");
+    if (epuise) classes.push("bon-epuise");
+
+    // Tickets : d'abord les disponibles, puis les utilisés. Le dernier utilisé « saute » après un envoi.
+    const tickets = [];
+    for (let i = 0; i < max; i++) {
+      const utilise = i >= restants;
+      const pop = animer && i === restants;
+      tickets.push(h("span", { class: "ticket" + (utilise ? " utilise" : "") + (pop ? " pop" : "") }));
+    }
 
     return h("article", { class: classes.join(" "), "data-id": bon.id },
-      h("div", { class: "bon-contenu" },
-        h("div", { class: "bon-entete" }, bon.joker ? "Joker" : "Bon pour"),
-        h("div", { class: "bon-emoji", "aria-hidden": "true" }, bon.emoji),
-        h("h3", { class: "bon-titre" }, bon.titre),
-        bon.detail && h("p", { class: "bon-detail" }, bon.detail)),
-      u && h("div", { class: "bon-statut" },
-        h("p", { class: "bon-info" }, `Utilisé par ${u.par} le ${dateLisible(u.date)}`),
-        u.message && h("p", { class: "bon-mot" }, `« ${u.message} »`)),
+      h("div", { class: "bon-haut" },
+        h("div", { class: "bon-tuile", style: `--teinte: ${teinte(bon, index)}`, "aria-hidden": "true" }, bon.emoji),
+        h("span", { class: "bon-etiquette" }, bon.joker ? "Joker" : "Bon pour")),
+      h("h3", { class: "bon-titre" }, bon.titre),
+      bon.detail && h("p", { class: "bon-detail" }, bon.detail),
+      h("div", { class: "bon-stock" },
+        h("div", { class: "tickets", "aria-hidden": "true" }, tickets),
+        h("span", { class: "stock-texte" },
+          epuise ? "Tous utilisés" : `${restants} ${restants > 1 ? "restants" : "restant"} sur ${max}`)),
+      usages.length > 0 && h("ul", { class: "bon-historique" },
+        usages.map((u) => h("li", {},
+          `Utilisé le ${dateLisible(u.date)}`, u.message ? ` · « ${u.message} »` : ""))),
       h("p", { class: "bon-offert print-only" }, `Offert avec tout mon amour par ${CONFIG.monPrenom}`),
-      u && h("div", { class: "tampon" + (animer ? " tampon-anime" : ""), "aria-hidden": "true" }, "Utilisé"),
       h("div", { class: "bon-actions" },
-        !u && h("button", { type: "button", class: "btn btn-principal", onclick: () => ouvrirModale(bon) },
-          bon.joker ? "Utiliser ce joker" : "Utiliser ce bon"),
+        epuise
+          ? h("p", { class: "epuise-note" }, "Tous utilisés, merci ! 💛")
+          : h("button", { type: "button", class: "btn btn-principal", onclick: () => ouvrirModale(bon, index, restants) },
+            bon.joker ? "Utiliser un joker" : "Utiliser ce bon"),
         h("button", { type: "button", class: "btn btn-secondaire", onclick: () => imprimer(bon.id) },
           "🖨️ Imprimer")));
   }
 
   // ---------- Modale ----------
 
-  function ouvrirModale(bon) {
+  function ouvrirModale(bon, index, restants) {
     dernierFocus = document.activeElement;
-    afficherFormulaire(bon);
+    afficherFormulaire(bon, index, restants);
     modale.hidden = false;
     page.inert = true;
     document.body.classList.add("modale-ouverte");
-    const cible = panneau.querySelector("[data-focus]");
-    if (cible) cible.focus();
+    $("#mot")?.focus();
   }
 
   function fermerModale() {
@@ -190,31 +232,28 @@
     }
   }
 
-  function afficherFormulaire(bon) {
-    const seul = prenoms.length === 1;
-
-    const choix = prenoms.map((prenom, i) => {
-      const input = h("input", { type: "radio", name: "par", value: prenom, checked: seul, "data-focus": i === 0 && !seul });
-      return h("label", { class: "choix" + (seul ? " coche" : "") }, input, h("span", {}, prenom));
-    });
+  function afficherFormulaire(bon, index, restants) {
+    const apres = restants - 1;
+    const sousTitre = apres === 0
+      ? "C'est le dernier de ce type !"
+      : `Il vous en restera ${apres} après celui-ci.`;
 
     const zone = h("textarea", {
       id: "mot",
       rows: "4",
-      "data-focus": seul,
       placeholder: bon.joker
         ? "Par exemple : m'aider à installer la nouvelle imprimante"
         : "Par exemple : plutôt un samedi matin",
     });
     const erreur = h("p", { class: "erreur", role: "alert", hidden: true });
-    const boutonEnvoyer = h("button", { type: "submit", class: "btn btn-principal btn-grand" }, "✅ Oui, envoyer");
+    const boutonEnvoyer = h("button", { type: "submit", class: "btn btn-principal btn-grand" },
+      `Envoyer à ${CONFIG.monPrenom}`);
 
     const form = h("form", { novalidate: true },
-      h("h2", { id: "modale-titre" }, bon.joker ? "Utiliser un joker" : "Utiliser ce bon ?"),
-      h("p", { class: "modale-bon" }, `${bon.emoji} ${bon.titre}`),
-      h("fieldset", { class: "qui" },
-        h("legend", {}, "Qui utilise ce bon ?"),
-        h("div", { class: "choix-liste" }, choix)),
+      h("div", { class: "modale-entete" },
+        h("div", { class: "bon-tuile", style: `--teinte: ${teinte(bon, index)}`, "aria-hidden": "true" }, bon.emoji),
+        h("h2", { id: "modale-titre" }, bon.joker ? "Utiliser un joker" : bon.titre),
+        h("p", { class: "modale-sous-titre" }, sousTitre)),
       h("label", { for: "mot", class: "etiquette" },
         bon.joker ? "De quoi avez-vous besoin ?" : "Un petit mot ? (facultatif)"),
       zone,
@@ -223,37 +262,26 @@
         boutonEnvoyer,
         h("button", { type: "button", class: "btn btn-secondaire", onclick: fermerModale }, "Annuler")));
 
-    // Coloration du prénom choisi (sans dépendre de :has()).
-    form.addEventListener("change", (ev) => {
-      if (ev.target.name !== "par") return;
-      form.querySelectorAll(".choix").forEach((l) => l.classList.toggle("coche", l.contains(ev.target)));
-      erreur.hidden = true;
-    });
-
     form.addEventListener("submit", async (ev) => {
       ev.preventDefault();
       if (envoiEnCours) return;
 
-      const par = form.querySelector('input[name="par"]:checked')?.value;
       const message = zone.value.trim();
-      if (!par) {
-        montrerErreur(erreur, "Cliquez sur votre prénom pour dire qui utilise ce bon.");
-        return;
-      }
       if (bon.joker && !message) {
         montrerErreur(erreur, "Écrivez en quelques mots ce dont vous avez besoin.");
         zone.focus();
         return;
       }
 
+      const utilisation = { uid: nouvelUid(), bon: bon.id, date: aujourdhuiISO(), message };
       erreur.hidden = true;
       envoiEnCours = true;
       boutonEnvoyer.disabled = true;
       boutonEnvoyer.textContent = "Envoi en cours…";
       try {
-        await envoyer(bon, par, message);
+        await envoyer(bon, utilisation, apres);
         envoiEnCours = false;
-        afficherSucces(bon, par, message);
+        afficherSucces(utilisation);
       } catch (e) {
         console.error("Échec de l'envoi", e);
         envoiEnCours = false;
@@ -273,12 +301,10 @@
     el.hidden = false;
   }
 
-  function afficherSucces(bon, par, message) {
+  function afficherSucces(utilisation) {
     if (!MODE_TEST) {
-      const etat = lireLocal();
-      etat[bon.id] = { par, message, date: aujourdhuiISO() };
-      ecrireLocal(etat);
-      animerApresFermeture = bon.id;
+      ecrireLocal([...lireLocal(), utilisation]);
+      animerApresFermeture = utilisation.bon;
     }
 
     const bouton = h("button", { type: "button", class: "btn btn-principal btn-grand", onclick: fermerModale },
@@ -299,7 +325,13 @@
 
   // ---------- Envoi (Web3Forms) ----------
 
-  async function envoyer(bon, par, message) {
+  function ligneConfig(u) {
+    const champs = [`uid: ${JSON.stringify(u.uid)}`, `bon: ${JSON.stringify(u.bon)}`, `date: ${JSON.stringify(u.date)}`];
+    if (u.message) champs.push(`message: ${JSON.stringify(u.message)}`);
+    return `{ ${champs.join(", ")} },`;
+  }
+
+  async function envoyer(bon, utilisation, restantsApres) {
     const cle = (CONFIG.web3formsKey || "").trim();
     if (!cle) {
       if (MODE_TEST) {
@@ -311,8 +343,8 @@
 
     const prefixe = MODE_TEST ? "[TEST] " : "";
     const sujet = bon.joker
-      ? `${prefixe}🃏 Demande sur mesure de ${par}`
-      : `${prefixe}🎁 Bon utilisé : ${bon.titre} (${par})`;
+      ? `${prefixe}🃏 Demande sur mesure : ${utilisation.message.slice(0, 60)}`
+      : `${prefixe}🎁 Bon utilisé : ${bon.titre}`;
 
     const controle = new AbortController();
     const minuteur = setTimeout(() => controle.abort(), DELAI_ENVOI_MS);
@@ -325,10 +357,10 @@
           subject: sujet,
           from_name: "Carnet de bons",
           "Bon": `${bon.emoji} ${bon.titre}`,
-          "Utilisé par": par,
-          "Message": message || "(pas de message)",
-          "Date": dateLisible(aujourdhuiISO()),
-          "Identifiant (pour config.js)": bon.id,
+          "Message": utilisation.message || "(pas de message)",
+          "Date": dateLisible(utilisation.date),
+          "Il en reste": `${restantsApres} sur ${quantite(bon)}`,
+          "À copier dans config.js (dejaUtilises)": ligneConfig(utilisation),
         }),
         signal: controle.signal,
       });
@@ -346,7 +378,7 @@
   function lancerConfettis() {
     if (typeof confetti !== "function") return;
     const options = {
-      colors: ["#b5442f", "#d99a2b", "#55744a", "#f6e7c8", "#c62828"],
+      colors: ["#6d4aff", "#ff8a5c", "#ffd166", "#1f8a5b", "#e8553d"],
       zIndex: 1000,
       disableForReducedMotion: true,
     };

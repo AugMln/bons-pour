@@ -7,31 +7,34 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Nunito:wght@400;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="page">
     <div id="bandeaux" class="bandeaux"></div>
 
-    <header class="entete">
-      <p class="surtitre">🎁 Carnet de bons</p>
+    <header class="hero">
+      <span class="pastille">🎁 Carnet de bons</span>
       <h1 id="titre">Joyeux anniversaire !</h1>
       <p id="message" class="message"></p>
-      <p id="signature" class="signature"></p>
+      <p class="signature">
+        <span id="avatar" class="avatar" aria-hidden="true"></span>
+        <span id="signature"></span>
+      </p>
     </header>
 
-    <section class="comment" aria-labelledby="comment-titre">
-      <h2 id="comment-titre">Comment ça marche ?</h2>
-      <ol>
-        <li><span class="num" aria-hidden="true">1</span> Choisissez un bon dans le carnet</li>
-        <li><span class="num" aria-hidden="true">2</span> Cliquez sur « Utiliser ce bon »</li>
-        <li><span class="num" aria-hidden="true">3</span> <span id="etape3">Je reçois votre message et je vous recontacte</span></li>
-      </ol>
+    <section class="etapes" aria-label="Comment ça marche">
+      <div class="etape"><span class="num" aria-hidden="true">1</span><p>Choisissez un bon dans le carnet</p></div>
+      <div class="etape"><span class="num" aria-hidden="true">2</span><p>Cliquez sur «&nbsp;Utiliser ce bon&nbsp;»</p></div>
+      <div class="etape"><span class="num" aria-hidden="true">3</span><p id="etape3">Je reçois votre message et je vous recontacte</p></div>
     </section>
 
     <main>
-      <p id="compteur" class="compteur"></p>
+      <div class="resume">
+        <p id="compteur" class="compteur"></p>
+        <div class="jauge" aria-hidden="true"><div id="jauge" class="jauge-remplie"></div></div>
+      </div>
       <div id="grille" class="grille"></div>
     </main>
 
