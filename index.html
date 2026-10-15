@@ -4,44 +4,66 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Carnet de bons</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎁</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23ebe5d8'/><text x='50' y='72' font-family='Georgia,serif' font-style='italic' font-size='70' text-anchor='middle' fill='%23a8432f'>b</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600;800&display=swap">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
+  <div class="grain" aria-hidden="true"></div>
+
   <div id="page">
     <div id="bandeaux" class="bandeaux"></div>
 
-    <header class="hero">
-      <span class="pastille">🎁 Carnet de bons</span>
-      <h1 id="titre">Joyeux anniversaire !</h1>
-      <p id="message" class="message"></p>
-      <p class="signature">
-        <span id="avatar" class="avatar" aria-hidden="true"></span>
-        <span id="signature"></span>
-      </p>
+    <header class="masthead">
+      <span id="mast-date"></span>
+      <span>Carnet de bons</span>
+      <span>Édition anniversaire</span>
     </header>
 
-    <section class="etapes" aria-label="Comment ça marche">
-      <div class="etape"><span class="num" aria-hidden="true">1</span><p>Choisissez un bon dans le carnet</p></div>
-      <div class="etape"><span class="num" aria-hidden="true">2</span><p>Cliquez sur «&nbsp;Utiliser ce bon&nbsp;»</p></div>
-      <div class="etape"><span class="num" aria-hidden="true">3</span><p id="etape3">Je reçois votre message et je vous recontacte</p></div>
+    <section class="hero">
+      <div class="hero-texte">
+        <h1>joyeux anniversaire</h1>
+        <p id="noms" class="noms"></p>
+        <dl class="fiche">
+          <div><dt>Offert par</dt><dd id="fiche-auteur"></dd></div>
+          <div><dt>Contenu</dt><dd id="fiche-contenu"></dd></div>
+          <div><dt>Validité</dt><dd>Sans limite de temps</dd></div>
+        </dl>
+        <p id="message" class="message"></p>
+      </div>
+      <figure id="hero-photo" class="hero-photo" hidden>
+        <img id="photo-accueil" alt="">
+      </figure>
+      <div id="hero-bloc" class="hero-bloc" aria-hidden="true"></div>
+    </section>
+
+    <section class="mode-emploi" aria-labelledby="mode-emploi-titre">
+      <h2 id="mode-emploi-titre" class="rubrique">Mode d'emploi</h2>
+      <ol>
+        <li><span class="chiffre">I.</span><p>Choisissez un bon dans le carnet.</p></li>
+        <li><span class="chiffre">II.</span><p>Cliquez sur «&nbsp;Utiliser ce bon&nbsp;».</p></li>
+        <li><span class="chiffre">III.</span><p id="etape3">Je reçois votre message et je vous recontacte.</p></li>
+      </ol>
     </section>
 
     <main>
-      <p id="prochain" class="prochain" hidden></p>
+      <div id="prochain" class="prochain" hidden></div>
       <div class="resume">
+        <h2 class="titre-section">le carnet</h2>
         <p id="compteur" class="compteur"></p>
-        <div class="jauge" aria-hidden="true"><div id="jauge" class="jauge-remplie"></div></div>
       </div>
+      <div class="jauge" aria-hidden="true"><div id="jauge" class="jauge-remplie"></div></div>
       <div id="grille" class="grille"></div>
     </main>
 
     <section id="album" class="album" aria-labelledby="album-titre"></section>
 
-    <footer class="pied">Un souci ? Appelez-moi au <strong id="telephone"></strong></footer>
+    <footer class="pied">
+      <span>Un souci ? Appelez-moi au <strong id="telephone"></strong></span>
+      <span>Fait main par <em id="signature"></em></span>
+    </footer>
   </div>
 
   <div id="modale" class="modale" hidden role="dialog" aria-modal="true" aria-labelledby="modale-titre">

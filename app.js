@@ -7,7 +7,6 @@
   const ANCIENNES_CLES = ["bons-v1"];
   const URL_WEB3FORMS = "https://api.web3forms.com/submit";
   const DELAI_ENVOI_MS = 15000;
-  const TEINTES = ["#ffe4d6", "#dff3e6", "#e4e8ff", "#fff1c7", "#fde2ec", "#d9f1f6", "#eee5ff", "#ecf3d6"];
   const PEU_IMPORTE = "Peu importe";
 
   const params = new URLSearchParams(window.location.search);
@@ -109,39 +108,53 @@
     return d.toLocaleDateString("fr-FR", options);
   }
 
-  function teinte(bon, index) {
-    return bon.couleur || TEINTES[index % TEINTES.length];
+  function numero(index) {
+    return `N° ${String(index + 1).padStart(2, "0")}`;
   }
 
   // Demandé → Prévu le … (date fixée par moi dans config.js) → Fait le …
   function statut(u) {
     if (u.prevu && u.prevu >= aujourdhuiISO()) {
-      return { classe: "statut-prevu", texte: `📅 Prévu le ${dateLisible(u.prevu, true)}` };
+      return { classe: "statut-prevu", texte: `Prévu le ${dateLisible(u.prevu, true)}` };
     }
-    if (u.prevu) return { classe: "statut-fait", texte: `✓ Fait le ${dateLisible(u.prevu)}` };
-    return { classe: "statut-attente", texte: `⏳ Demandé le ${dateLisible(u.date)}` };
+    if (u.prevu) return { classe: "statut-fait", texte: `Fait le ${dateLisible(u.prevu)}` };
+    return { classe: "statut-attente", texte: `Demandé le ${dateLisible(u.date)}` };
   }
 
   // ---------- En-tête ----------
 
   function rendreEntete() {
     const noms = prenoms.join(" & ");
+    const totalBons = CONFIG.bons.reduce((somme, bon) => somme + quantite(bon), 0);
     document.title = `Les bons de ${noms}`;
-    $("#titre").replaceChildren("Joyeux anniversaire", h("span", { class: "noms" }, noms));
+
+    const moisAnnee = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    $("#mast-date").textContent = moisAnnee;
+    $("#noms").textContent = `pour ${noms}`;
+    $("#fiche-auteur").textContent = CONFIG.monPrenom || "";
+    $("#fiche-contenu").textContent = `${totalBons} bons, ${CONFIG.bons.length} sortes`;
     $("#message").textContent = CONFIG.messageAccueil || "";
-    $("#avatar").textContent = (CONFIG.monPrenom || "?").charAt(0).toUpperCase();
-    $("#signature").textContent = `Avec tout mon amour, ${CONFIG.monPrenom}`;
-    $("#etape3").textContent = `${CONFIG.monPrenom} reçoit votre message et vous recontacte`;
+    $("#signature").textContent = CONFIG.monPrenom || "";
+    $("#etape3").textContent = `${CONFIG.monPrenom} reçoit votre message et vous recontacte.`;
     $("#telephone").textContent = CONFIG.monTelephone || "";
+
+    // Photo d'accueil (noir et blanc) si fournie, sinon un bloc rouge façon affiche.
+    if (CONFIG.photoAccueil) {
+      $("#photo-accueil").src = CONFIG.photoAccueil;
+      $("#hero-photo").hidden = false;
+      $("#hero-bloc").hidden = true;
+    } else {
+      $("#hero-bloc").textContent = `${totalBons} bons, et un peu de mon temps.`;
+    }
 
     const bandeaux = $("#bandeaux");
     if (MODE_TEST) {
       bandeaux.append(h("div", { class: "bandeau bandeau-test" },
-        "🧪 MODE TEST : les emails sont marqués [TEST] et aucun bon n'est consommé."));
+        "Mode test — les emails sont marqués [TEST] et aucun bon n'est consommé."));
     }
     if (!(CONFIG.web3formsKey || "").trim()) {
       bandeaux.append(h("div", { class: "bandeau bandeau-alerte" },
-        "⚠️ Clé Web3Forms manquante dans config.js : les envois ne fonctionneront pas."));
+        "Clé Web3Forms manquante dans config.js : les envois ne fonctionneront pas."));
     }
   }
 
@@ -167,11 +180,9 @@
     const u = aVenir[0];
     const bon = bonsParId.get(u.bon);
     el.replaceChildren(
-      h("span", { class: "prochain-icone", "aria-hidden": "true" }, "📅"),
-      h("span", {},
-        h("span", { class: "prochain-label" }, "Prochain rendez-vous"),
-        h("strong", {}, `${bon.emoji} ${bon.joker && u.message ? u.message : bon.titre}`),
-        h("span", { class: "prochain-date" }, dateLisible(u.prevu, true))));
+      h("span", { class: "prochain-label" }, "Prochain rendez-vous"),
+      h("strong", { class: "prochain-titre" }, bon.joker && u.message ? u.message : bon.titre),
+      h("span", { class: "prochain-date" }, dateLisible(u.prevu, true)));
     el.hidden = false;
   }
 
@@ -193,7 +204,7 @@
 
     const compteur = $("#compteur");
     if (restantsTotal === 0) {
-      compteur.textContent = "Tous les bons ont été utilisés ! Un nouveau carnet arrive bientôt… 😉";
+      compteur.textContent = "Tous les bons ont été utilisés ! Un nouveau carnet arrive bientôt.";
     } else {
       compteur.replaceChildren(
         "Il vous reste ", h("strong", {}, String(restantsTotal)),
@@ -220,41 +231,44 @@
       tickets.push(h("span", { class: "ticket" + (utilise ? " utilise" : "") + (pop ? " pop" : "") }));
     }
 
-    const etiquette = bon.mystere ? "Surprise" : bon.joker ? "Joker" : "Bon pour";
+    const kicker = bon.mystere ? "un bon mystère" : bon.joker ? "un joker pour" : "bon pour";
     const article = h("article", { class: classes.join(" "), "data-id": bon.id },
-      h("div", { class: "bon-haut" },
-        h("div", { class: "bon-tuile", style: `--teinte: ${teinte(bon, index)}`, "aria-hidden": "true" }, bon.emoji),
-        h("span", { class: "bon-etiquette" }, etiquette)),
-      h("h3", { class: "bon-titre" }, bon.titre),
-      bon.detail && h("p", { class: "bon-detail" }, bon.detail),
-      h("div", { class: "bon-stock" },
-        h("div", { class: "tickets", "aria-hidden": "true" }, tickets),
-        h("span", { class: "stock-texte" },
-          epuise ? (max > 1 ? "Tous utilisés" : "Utilisé")
-            : `${restants} ${restants > 1 ? "restants" : "restant"} sur ${max}`)),
-      usages.length > 0 && h("ul", { class: "bon-historique" },
-        usages.map((u) => {
-          const s = statut(u);
-          return h("li", { class: s.classe }, s.texte, u.message ? ` · « ${u.message} »` : "");
-        })),
+      h("div", { class: "bon-meta" },
+        h("span", {}, numero(index)),
+        h("span", {}, bon.categorie || "")),
+      h("div", { class: "bon-corps" },
+        h("p", { class: "bon-kicker" }, kicker),
+        h("h3", { class: "bon-titre" }, bon.titre),
+        bon.detail && h("p", { class: "bon-detail" }, bon.detail)),
+      h("div", { class: "bon-fiche" },
+        h("div", { class: "bon-fiche-ligne" },
+          h("span", { class: "etiquette-fiche" }, "Exemplaires"),
+          h("span", { class: "stock" },
+            h("span", { class: "tickets", "aria-hidden": "true" }, tickets),
+            epuise ? (max > 1 ? "tous utilisés" : "utilisé") : `${restants} sur ${max}`)),
+        usages.length > 0 && h("ul", { class: "bon-historique" },
+          usages.map((u) => {
+            const s = statut(u);
+            return h("li", { class: s.classe }, s.texte, u.message ? ` — « ${u.message} »` : "");
+          }))),
       h("p", { class: "bon-offert print-only" }, `Offert avec tout mon amour par ${CONFIG.monPrenom}`),
       h("div", { class: "bon-actions" },
         epuise
-          ? h("p", { class: "epuise-note" }, "Tous utilisés, merci ! 💛")
-          : h("button", { type: "button", class: "btn btn-principal", onclick: () => ouvrirModale(bon, index, restants) },
+          ? h("p", { class: "epuise-note" }, "Tous utilisés, merci.")
+          : h("button", { type: "button", class: "btn btn-principal fleche", onclick: () => ouvrirModale(bon, index, restants) },
             bon.joker ? "Utiliser un joker" : "Utiliser ce bon"),
         h("button", { type: "button", class: "btn btn-secondaire", onclick: () => imprimer(bon.id) },
-          "🖨️ Imprimer")));
+          "Imprimer ce bon")));
 
     if (bon.mystere && usages.length === 0 && !lireListe(CLE_MYSTERE).includes(bon.id)) {
-      ajouterGrattage(article, bon);
+      ajouterGrattage(article, bon, index);
     }
     return article;
   }
 
   // ---------- Bon mystère à gratter ----------
 
-  function ajouterGrattage(article, bon) {
+  function ajouterGrattage(article, bon, index) {
     const canvas = h("canvas", { class: "grattage", "aria-hidden": "true" });
     const boutonDecouvrir = h("button", { type: "button", class: "btn-decouvrir" }, "Ou cliquez ici pour découvrir");
     const couche = h("div", { class: "couche-mystere" }, canvas, boutonDecouvrir);
@@ -278,29 +292,36 @@
       ctx = canvas.getContext("2d", { willReadFrequently: true });
       ctx.scale(ratio, ratio);
 
-      const degrade = ctx.createLinearGradient(0, 0, l, ht);
-      degrade.addColorStop(0, "#ff8a5c");
-      degrade.addColorStop(1, "#6d4aff");
-      ctx.fillStyle = degrade;
+      // Aplat rouge brique façon affiche, avec un grain de pellicule.
+      ctx.fillStyle = "#a8432f";
       ctx.fillRect(0, 0, l, ht);
-
-      ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
-      for (let i = 0; i < 70; i++) {
-        ctx.beginPath();
-        ctx.arc(Math.random() * l, Math.random() * ht, 2 + Math.random() * 5, 0, Math.PI * 2);
-        ctx.fill();
+      for (let i = 0; i < (l * ht) / 18; i++) {
+        ctx.fillStyle = Math.random() < 0.5 ? "rgba(0, 0, 0, 0.10)" : "rgba(255, 240, 220, 0.08)";
+        ctx.fillRect(Math.random() * l, Math.random() * ht, 1.5, 1.5);
       }
 
-      ctx.fillStyle = "#fff";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.font = "64px sans-serif";
-      ctx.fillText("🎁", l / 2, ht / 2 - 90);
-      ctx.font = "800 34px 'Plus Jakarta Sans', sans-serif";
-      ctx.fillText("Bon mystère", l / 2, ht / 2 - 20);
-      ctx.font = "700 19px 'Plus Jakarta Sans', sans-serif";
-      ctx.fillText("Passez la souris dessus", l / 2, ht / 2 + 22);
-      ctx.fillText("pour gratter !", l / 2, ht / 2 + 48);
+      ctx.fillStyle = "#efe8da";
+      ctx.strokeStyle = "#efe8da";
+      ctx.lineWidth = 1;
+      ctx.font = "600 13px 'Inter Tight', sans-serif";
+      ctx.textBaseline = "alphabetic";
+      ctx.textAlign = "left";
+      ctx.fillText(`${numero(index)}`.toUpperCase(), 24, 38);
+      ctx.textAlign = "right";
+      ctx.fillText("SURPRISE", l - 24, 38);
+      ctx.beginPath();
+      ctx.moveTo(24, 50);
+      ctx.lineTo(l - 24, 50);
+      ctx.stroke();
+
+      ctx.textAlign = "left";
+      ctx.font = "italic 30px 'Instrument Serif', serif";
+      ctx.fillText("un bon", 24, ht / 2 - 40);
+      ctx.font = "800 54px 'Inter Tight', sans-serif";
+      ctx.fillText("mystère", 22, ht / 2 + 12);
+      ctx.font = "italic 24px 'Instrument Serif', serif";
+      ctx.fillText("Passez la souris dessus", 24, ht / 2 + 56);
+      ctx.fillText("pour le gratter.", 24, ht / 2 + 84);
 
       ctx.globalCompositeOperation = "destination-out";
       ctx.lineWidth = 70;
@@ -360,20 +381,27 @@
       .sort((a, b) => String(b.prevu || b.date).localeCompare(String(a.prevu || a.date)));
 
     const album = $("#album");
-    album.replaceChildren(h("h2", { id: "album-titre" }, "📸 Nos moments"));
+    album.replaceChildren(h("div", { class: "album-entete" },
+      h("h2", { id: "album-titre" }, "nos moments"),
+      h("p", { class: "album-sous-titre" }, "sur pellicule")));
+
+    // Album vide : une bande de pellicule aux cases encore blanches.
     if (avecPhoto.length === 0) {
-      album.append(h("p", { class: "album-vide" },
-        `Après chaque bon, ${CONFIG.monPrenom} ajoutera ici une photo de votre moment ensemble 💛`));
+      album.append(h("div", { class: "pellicule" },
+        h("div", { class: "moment" }, h("div", { class: "moment-vide" },
+          `Après chaque bon, ${CONFIG.monPrenom} ajoutera ici une photo de votre moment ensemble.`)),
+        h("div", { class: "moment" }, h("div", { class: "moment-vide" }, "bientôt…")),
+        h("div", { class: "moment" }, h("div", { class: "moment-vide" }, "bientôt…"))));
       return;
     }
-    album.append(h("div", { class: "album-grille" },
+    album.append(h("div", { class: "pellicule" },
       avecPhoto.map((u) => {
         const bon = bonsParId.get(u.bon);
         return h("figure", { class: "moment" },
           h("a", { href: u.photo, target: "_blank", rel: "noopener" },
             h("img", { src: u.photo, alt: u.legende || bon.titre, loading: "lazy" })),
           h("figcaption", {},
-            h("strong", {}, u.legende || `${bon.emoji} ${bon.titre}`),
+            h("strong", {}, u.legende || bon.titre),
             h("span", {}, dateLisible(u.prevu || u.date))));
       })));
   }
@@ -436,13 +464,13 @@
         : "Par exemple : j'aimerais tailler la haie",
     });
     const erreur = h("p", { class: "erreur", role: "alert", hidden: true });
-    const boutonEnvoyer = h("button", { type: "submit", class: "btn btn-principal btn-grand" },
+    const boutonEnvoyer = h("button", { type: "submit", class: "btn btn-principal btn-grand fleche" },
       `Envoyer à ${CONFIG.monPrenom}`);
 
     const form = h("form", { novalidate: true },
       h("div", { class: "modale-entete" },
-        h("div", { class: "bon-tuile", style: `--teinte: ${teinte(bon, index)}`, "aria-hidden": "true" }, bon.emoji),
-        h("h2", { id: "modale-titre" }, bon.joker ? "Utiliser un joker" : bon.titre),
+        h("p", { class: "modale-kicker" }, [numero(index), bon.categorie].filter(Boolean).join(" — ")),
+        h("h2", { id: "modale-titre" }, bon.joker ? "utiliser un joker" : bon.titre),
         h("p", { class: "modale-sous-titre" }, sousTitre)),
       groupeChoix("quand", "Quand ?", ["En semaine", "Le week-end", PEU_IMPORTE]),
       groupeChoix("moment", "À quel moment ?", ["Le matin", "L'après-midi", PEU_IMPORTE]),
@@ -491,7 +519,7 @@
         console.error("Échec de l'envoi", e);
         envoiEnCours = false;
         boutonEnvoyer.disabled = false;
-        boutonEnvoyer.textContent = "🔁 Réessayer";
+        boutonEnvoyer.textContent = "Réessayer";
         montrerErreur(erreur,
           "Oups, ça n'a pas marché. Vérifiez que l'ordinateur est bien connecté à internet, puis réessayez. " +
           `Sinon, appelez-moi au ${CONFIG.monTelephone}.`);
@@ -515,9 +543,9 @@
     const bouton = h("button", { type: "button", class: "btn btn-principal btn-grand", onclick: fermerModale },
       "Voir mon carnet");
     panneau.replaceChildren(h("div", { class: "succes" },
-      h("div", { class: "succes-icone", "aria-hidden": "true" }, "🎉"),
-      h("h2", { id: "modale-titre" }, "C'est envoyé !"),
-      h("p", {}, `${CONFIG.monPrenom} a bien reçu votre message et vous recontacte très vite 💛`),
+      h("div", { class: "tampon-merci", "aria-hidden": "true" }, "merci"),
+      h("h2", { id: "modale-titre" }, "c'est envoyé."),
+      h("p", {}, `${CONFIG.monPrenom} a bien reçu votre message et vous recontacte très vite.`),
       MODE_TEST && h("p", { class: "note-test" }, "(Mode test : le bon n'a pas été consommé.)"),
       bouton));
     bouton.focus();
@@ -549,8 +577,8 @@
 
     const prefixe = MODE_TEST ? "[TEST] " : "";
     const sujet = bon.joker
-      ? `${prefixe}🃏 Demande sur mesure : ${utilisation.message.slice(0, 60)}`
-      : `${prefixe}🎁 Bon utilisé : ${bon.titre}`;
+      ? `${prefixe}Joker — demande sur mesure : ${utilisation.message.slice(0, 60)}`
+      : `${prefixe}Bon utilisé : ${bon.titre}`;
 
     const controle = new AbortController();
     const minuteur = setTimeout(() => controle.abort(), DELAI_ENVOI_MS);
@@ -562,7 +590,7 @@
           access_key: cle,
           subject: sujet,
           from_name: "Carnet de bons",
-          "Bon": `${bon.emoji} ${bon.titre}`,
+          "Bon": bon.titre,
           "Créneau souhaité": utilisation.creneau || PEU_IMPORTE,
           "Message": utilisation.message || "(pas de message)",
           "Date de la demande": dateLisible(utilisation.date),
@@ -586,7 +614,8 @@
   function lancerConfettis() {
     if (typeof confetti !== "function") return;
     const options = {
-      colors: ["#6d4aff", "#ff8a5c", "#ffd166", "#1f8a5b", "#e8553d"],
+      colors: ["#a8432f", "#171512", "#efe8da", "#8b7355", "#c9bfac"],
+      shapes: ["square"],
       zIndex: 1000,
       disableForReducedMotion: true,
     };
