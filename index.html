@@ -7,7 +7,7 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23efe7d8'/><text x='50' y='72' font-family='Georgia,serif' font-style='italic' font-size='70' text-anchor='middle' fill='%237b2d26'>b</text></svg>">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Jost:wght@400;500&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,400;1,500&family=Jost:wght@400;500&family=Special+Elite&display=swap">
   <script>
     // Paramètre anti-cache : GitHub Pages doit toujours servir la dernière version du style.
     var v = Date.now();
@@ -16,6 +16,24 @@
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
+
+  <div id="enveloppe" class="enveloppe-ecran" hidden>
+    <p class="enveloppe-kicker">Une lettre pour vous</p>
+    <button id="enveloppe-bouton" class="enveloppe" type="button" aria-label="Ouvrir l'enveloppe">
+      <span class="enveloppe-dos"></span>
+      <span class="enveloppe-lettre">
+        <span class="lettre-petit">Carnet de bons</span>
+        <span class="lettre-titre">Joyeux anniversaire</span>
+        <span id="lettre-noms" class="lettre-noms"></span>
+      </span>
+      <span class="enveloppe-face">
+        <span class="enveloppe-destinataire">À l'attention de <em id="enveloppe-noms"></em></span>
+      </span>
+      <span class="enveloppe-rabat-ombre"><span class="enveloppe-rabat"></span></span>
+      <span id="enveloppe-sceau"></span>
+    </button>
+    <p class="enveloppe-aide">Cliquez sur le sceau pour ouvrir</p>
+  </div>
 
   <div id="page">
     <div id="bandeaux" class="bandeaux"></div>
@@ -66,7 +84,7 @@
 
     <footer class="pied">
       <span>Un souci ? Appelez-moi au <strong id="telephone"></strong></span>
-      <span>Fait main par <em id="signature"></em></span>
+      <span>Fait par <em id="signature"></em></span>
     </footer>
   </div>
 
@@ -74,7 +92,6 @@
     <div id="modale-panneau" class="modale-panneau"></div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <script>
     // Paramètre anti-cache : GitHub Pages doit toujours servir la dernière version de config.js.
     document.write('<script src="config.js?v=' + v + '"><\/script>');

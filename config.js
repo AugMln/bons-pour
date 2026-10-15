@@ -10,13 +10,10 @@ const CONFIG = {
     "Choisissez un bon quand vous voulez, je m'occupe du reste !",
 
   // Facultatif : une photo de vous (mise en noir et blanc automatiquement), par ex. "photos/accueil.jpg".
-  photoAccueil: "",
+  photoAccueil: "photos/accueil.jpeg",
 
   // Clé gratuite à obtenir sur https://web3forms.com (en saisissant votre email).
   web3formsKey: "8147c4d2-e494-47a8-a5b6-0fdfad2f356d",
-
-  // Affiché si l'envoi échoue.
-  monTelephone: "07 83 70 82 46",
 
   // Nombre d'exemplaires de chaque bon (modifiable bon par bon avec `quantite: 5`).
   quantiteParDefaut: 3,

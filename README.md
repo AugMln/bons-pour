@@ -1,4 +1,4 @@
-# 🎁 Carnet de bons
+# Carnet de bons
 
 Un carnet de « bons pour » à offrir à ses grands-parents. Quand ils utilisent un bon, vous recevez un email.
 
@@ -30,11 +30,12 @@ Faites ensuite `git pull`, puis `git commit -am "Bon jardin utilisé" && git pus
 
 ## 5. Faire vivre le carnet
 Sur la ligne d'une utilisation dans `dejaUtilises`, ajoutez :
-- `prevu: "2026-10-25"` quand la date est fixée. La carte affiche « Prévu le dimanche 25 octobre » et un encadré « Prochain rendez-vous » apparaît en haut. Une fois la date passée, la ligne devient « Fait le… ».
+- `prevu: "2026-10-25"` quand la date est fixée. Le talon du bon affiche « prévu » avec la date et un encadré « Prochain rendez-vous » apparaît en haut. Une fois la date passée, le talon devient « honoré » et reçoit un sceau de cire.
 - `photo: "photos/jardin.jpg"` et éventuellement `legende: "…"`. Mettez la photo dans le dossier `photos/` : elle apparaît dans l'album « Nos moments ». Pensez à réduire la photo à environ 1600px de large pour qu'elle charge vite.
 
 **Bon mystère** : c'est le bon `mystere: true` de `config.js`. On le gratte en passant la souris dessus. Chaque PC le découvre une fois. Choisissez votre surprise en modifiant sa catégorie, son titre et son détail.
 
 ## Raccourcis utiles
 - `?test=1` : mode test.
-- `?reset=1` : remet à zéro les bons utilisés **sur ce PC** (par exemple après un clic par erreur). Ce paramètre ne touche pas `dejaUtilises`.
+- `?enveloppe=1` : rejoue l'enveloppe d'ouverture (elle ne s'affiche qu'à la première visite sur chaque PC).
+- `?reset=1` : remet à zéro les bons utilisés, le bon mystère et l'enveloppe **sur ce PC** (par exemple après un clic par erreur). Ce paramètre ne touche pas `dejaUtilises`.

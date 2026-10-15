@@ -4,6 +4,7 @@
 
   const CLE_STOCKAGE = "bons-v2";
   const CLE_MYSTERE = "bons-mystere-v1";
+  const CLE_ENVELOPPE = "bons-enveloppe-v1";
   const ANCIENNES_CLES = ["bons-v1"];
   const URL_WEB3FORMS = "https://api.web3forms.com/submit";
   const DELAI_ENVOI_MS = 15000;
@@ -20,7 +21,7 @@
   // ?reset=1 : remet à zéro les bons utilisés (et le bon mystère) sur ce PC.
   if (params.has("reset")) {
     if (window.confirm("Remettre à zéro les bons utilisés sur cet ordinateur ?")) {
-      for (const cle of [CLE_STOCKAGE, CLE_MYSTERE, ...ANCIENNES_CLES]) {
+      for (const cle of [CLE_STOCKAGE, CLE_MYSTERE, CLE_ENVELOPPE, ...ANCIENNES_CLES]) {
         try { localStorage.removeItem(cle); } catch (e) { /* stockage indisponible */ }
       }
     }
@@ -112,13 +113,25 @@
     return `N° ${String(index + 1).padStart(2, "0")}`;
   }
 
-  // Demandé → Prévu le … (date fixée par moi dans config.js) → Fait le …
+  // Demandé → Prévu (date fixée par moi dans config.js) → Honoré (date passée)
   function statut(u) {
     if (u.prevu && u.prevu >= aujourdhuiISO()) {
-      return { classe: "statut-prevu", texte: `Prévu le ${dateLisible(u.prevu, true)}` };
+      return { classe: "prevu", mot: "prévu", date: u.prevu, texte: `Prévu le ${dateLisible(u.prevu, true)}` };
     }
-    if (u.prevu) return { classe: "statut-fait", texte: `Fait le ${dateLisible(u.prevu)}` };
-    return { classe: "statut-attente", texte: `Demandé le ${dateLisible(u.date)}` };
+    if (u.prevu) return { classe: "honore", mot: "honoré", date: u.prevu, texte: `Honoré le ${dateLisible(u.prevu)}` };
+    return { classe: "demande", mot: "demandé", date: u.date, texte: `Demandé le ${dateLisible(u.date)}` };
+  }
+
+  // « 2026-10-25 » → « 25.10.26 », façon tampon dateur
+  function dateCourte(iso) {
+    const [annee, mois, jour] = String(iso).split("-");
+    return jour && mois && annee ? `${jour}.${mois}.${annee.slice(2)}` : String(iso);
+  }
+
+  // Sceau de cire à l'initiale de l'auteur
+  function sceau(classe) {
+    return h("span", { class: `sceau ${classe || ""}`, "aria-hidden": "true" },
+      h("span", {}, (CONFIG.monPrenom || "?").charAt(0).toUpperCase()));
   }
 
   // ---------- En-tête ----------
@@ -136,7 +149,6 @@
     $("#message").textContent = CONFIG.messageAccueil || "";
     $("#signature").textContent = CONFIG.monPrenom || "";
     $("#etape3").textContent = `${CONFIG.monPrenom} reçoit votre message et vous recontacte.`;
-    $("#telephone").textContent = CONFIG.monTelephone || "";
 
     // Photo d'accueil facultative, présentée comme un tirage sépia.
     if (CONFIG.photoAccueil) {
@@ -220,13 +232,29 @@
     if (bon.mystere) classes.push("bon-mystere");
     if (epuise) classes.push("bon-epuise");
 
-    // Tickets : d'abord les disponibles, puis les utilisés. Le dernier utilisé « saute » après un envoi.
-    const tickets = [];
-    for (let i = 0; i < max; i++) {
-      const utilise = i >= restants;
-      const pop = animer && i === restants;
-      tickets.push(h("span", { class: "ticket" + (utilise ? " utilise" : "") + (pop ? " pop" : "") }));
+    // Carnet à souches : un talon par exemplaire. Les talons utilisés sont « détachés » et datés,
+    // le dernier se détache sous les yeux après un envoi.
+    const souches = [];
+    usages.slice(0, max).forEach((u, i) => {
+      const s = statut(u);
+      const vientDePartir = animer && i === usages.length - 1;
+      souches.push(h("div", {
+        class: `talon detache talon-${s.classe}` + (vientDePartir ? " vient-de-partir" : ""),
+        title: s.texte + (u.message ? ` — « ${u.message} »` : ""),
+      },
+        h("span", { class: "talon-num" }, `${i + 1}/${max}`),
+        h("span", { class: "talon-date" }, dateCourte(s.date)),
+        h("span", { class: "talon-etat" }, s.mot),
+        s.classe === "honore" && sceau("sceau-mini")));
+    });
+    for (let i = Math.min(usages.length, max); i < max; i++) {
+      souches.push(h("div", { class: "talon libre" },
+        h("span", { class: "talon-num" }, `${i + 1}/${max}`),
+        h("span", { class: "talon-etat" }, "à utiliser")));
     }
+    const compte = epuise
+      ? (max > 1 ? "toutes utilisées" : "utilisée")
+      : `${restants} sur ${max} disponible${restants > 1 ? "s" : ""}`;
 
     const kicker = bon.mystere ? "Un bon mystère" : bon.joker ? "Un joker pour" : "Bon pour";
     const article = h("article", { class: classes.join(" "), "data-id": bon.id },
@@ -238,16 +266,10 @@
         h("h3", { class: "bon-titre" }, bon.titre),
         bon.detail && h("p", { class: "bon-detail" }, bon.detail)),
       h("div", { class: "bon-fiche" },
-        h("div", { class: "bon-fiche-ligne" },
-          h("span", { class: "etiquette-fiche" }, "Exemplaires"),
-          h("span", { class: "stock" },
-            h("span", { class: "tickets", "aria-hidden": "true" }, tickets),
-            epuise ? (max > 1 ? "tous utilisés" : "utilisé") : `${restants} sur ${max}`)),
-        usages.length > 0 && h("ul", { class: "bon-historique" },
-          usages.map((u) => {
-            const s = statut(u);
-            return h("li", { class: s.classe }, s.texte, u.message ? ` — « ${u.message} »` : "");
-          }))),
+        h("div", { class: "souches-entete" },
+          h("span", { class: "etiquette-fiche" }, "Souches"),
+          h("span", { class: "souches-compte" }, compte)),
+        h("div", { class: "souches", style: `--n: ${max}` }, souches)),
       h("p", { class: "bon-offert print-only" }, `Offert avec tout mon amour par ${CONFIG.monPrenom}`),
       h("div", { class: "bon-actions" },
         epuise
@@ -350,7 +372,6 @@
       contenu.forEach((el) => { el.inert = false; });
       couche.classList.add("disparait");
       setTimeout(() => couche.remove(), 800);
-      lancerConfettis();
     }
 
     // Gratter au simple passage de la souris (pas besoin de cliquer), ou au doigt sur écran tactile.
@@ -551,8 +572,6 @@
       h("p", {}, `${CONFIG.monPrenom} a bien reçu votre message et vous recontacte très vite.`),
       MODE_TEST && h("p", { class: "note-test" }, "(Mode test : le bon n'a pas été consommé.)"),
       bouton));
-    bouton.focus();
-    lancerConfettis();
   }
 
   document.addEventListener("keydown", (ev) => {
@@ -612,21 +631,6 @@
     }
   }
 
-  // ---------- Confettis ----------
-
-  function lancerConfettis() {
-    if (typeof confetti !== "function") return;
-    const options = {
-      colors: ["#7b2d26", "#b08d57", "#d9c49c", "#faf6ee", "#2d241e"],
-      shapes: ["square"],
-      zIndex: 1000,
-      disableForReducedMotion: true,
-    };
-    confetti({ ...options, particleCount: 150, spread: 100, origin: { y: 0.6 } });
-    setTimeout(() => confetti({ ...options, particleCount: 80, angle: 60, spread: 70, origin: { x: 0, y: 0.7 } }), 250);
-    setTimeout(() => confetti({ ...options, particleCount: 80, angle: 120, spread: 70, origin: { x: 1, y: 0.7 } }), 400);
-  }
-
   // ---------- Impression ----------
 
   function imprimer(id) {
@@ -643,8 +647,43 @@
     window.print();
   }
 
+  // ---------- Enveloppe d'ouverture (première visite, ou ?enveloppe=1) ----------
+
+  function afficherEnveloppe() {
+    const ecran = $("#enveloppe");
+    let dejaOuverte = false;
+    try { dejaOuverte = localStorage.getItem(CLE_ENVELOPPE) === "1"; } catch (e) { /* stockage indisponible */ }
+    if (dejaOuverte && !params.has("enveloppe")) {
+      ecran.remove();
+      return;
+    }
+
+    const noms = prenoms.join(" & ");
+    $("#enveloppe-noms").textContent = noms;
+    $("#lettre-noms").textContent = noms;
+    $("#enveloppe-sceau").replaceWith(sceau("sceau-grand"));
+
+    ecran.hidden = false;
+    page.inert = true;
+    document.body.classList.add("modale-ouverte");
+
+    const bouton = $("#enveloppe-bouton");
+    bouton.addEventListener("click", () => {
+      if (ecran.classList.contains("ouverte")) return;
+      ecran.classList.add("ouverte");
+      try { localStorage.setItem(CLE_ENVELOPPE, "1"); } catch (e) { /* stockage indisponible */ }
+      setTimeout(() => ecran.classList.add("disparait"), 2800);
+      setTimeout(() => {
+        ecran.remove();
+        page.inert = false;
+        document.body.classList.remove("modale-ouverte");
+      }, 3600);
+    });
+  }
+
   // ---------- Démarrage ----------
 
   rendreEntete();
   rendre();
+  afficherEnveloppe();
 })();

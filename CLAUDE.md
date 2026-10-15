@@ -4,12 +4,12 @@ Page web statique : un carnet de « bons pour » (jardinage, bricolage, aide inf
 
 ## Fichiers
 - `config.js` — **toute** la personnalisation (prénoms, message, liste des bons, clé Web3Forms, téléphone, `dejaUtilises`). Aucun texte personnel en dur ailleurs.
-- `app.js` — logique : rendu, modale, envoi Web3Forms, localStorage, confettis, impression.
+- `app.js` — logique : rendu, modale, envoi Web3Forms, localStorage, impression.
 - `style.css` — styles écran + `@media print`.
 - `index.html` — structure ; charge `config.js` puis `app.js` avec un paramètre anti-cache.
 
 ## Règles
-- **Aucun build, aucun npm, aucun framework.** HTML/CSS/JS vanilla. Seule dépendance : `canvas-confetti@1.9.3` (jsDelivr), facultative (la page marche sans).
+- **Aucun build, aucun npm, aucun framework.** HTML/CSS/JS vanilla. Aucune librairie externe (seulement Google Fonts). Pas de confettis : rejetés, ne vont pas avec le style.
 - Interface en **français**, on **vouvoie** les grands-parents (ils sont deux), ton affectueux.
 - Direction artistique **« vintage, élégant, chic »** : ivoire / papier crème, encre sépia (jamais de noir pur), accent bordeaux (`--bordeaux`), filets dorés (`--or`), ornements « filet — losange — filet », cartes à double filet façon ancien ticket, grain de pellicule + léger vignettage, compositions centrées, pas d'arrondis. Titres en *Cormorant Garamond* (chiffres alignés `lnum`), notes en Cormorant italique, texte et boutons en *Jost*, métadonnées en petites capitales très espacées. Photos sépia. **Aucun emoji** dans ce qui est affiché. Éviter le look « affiche suisse » (gros sans-serif noir) : déjà essayé et rejeté.
 - Accessibilité « grands-parents » : base 20px, boutons ≥ 56px de haut, fort contraste, pas d'icône sans texte, rien qui dépende du survol, pas de fermeture accidentelle de la modale (pas de clic hors cadre).
@@ -17,6 +17,8 @@ Page web statique : un carnet de « bons pour » (jardinage, bricolage, aide inf
 - Une utilisation = `{ uid, bon, date, message }`. État = union, dédoublonnée par `uid`, de `CONFIG.dejaUtilises` (tableau, synchronisé par moi via GitHub) et du localStorage `bons-v2` (local au PC). L'email contient la ligne exacte à coller dans `dejaUtilises`. Tout accès localStorage est dans un try/catch.
 - Un envoi qui échoue ne consomme **jamais** le bon.
 - Champs que j'ajoute ensuite sur une utilisation : `prevu` (statut « Prévu le » puis « Fait le » + encadré « Prochain rendez-vous »), `photo` / `legende` (album « Nos moments », images dans `photos/`).
+- Carnet à souches : un talon perforé par exemplaire ; talon utilisé = détaché (bord déchiré), daté en machine à écrire (*Special Elite*), état demandé / prévu / honoré (sceau de cire à l'initiale de `monPrenom`).
+- Enveloppe d'ouverture scellée à la première visite (localStorage `bons-enveloppe-v1`), rejouable avec `?enveloppe=1`. Son animation reste active même si les animations système sont coupées.
 - Un bon `mystere: true` est caché sous une couche à gratter (canvas, gratter au simple survol + bouton de secours). Découverte mémorisée dans le localStorage `bons-mystere-v1`.
 - Garder ça simple : pas de comptes, pas de base de données, pas de PWA (voir « Hors périmètre » dans PLAN.md).
 
