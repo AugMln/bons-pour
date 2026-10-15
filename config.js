@@ -10,7 +10,7 @@ const CONFIG = {
     "Choisissez un bon quand vous voulez, je m'occupe du reste !",
 
   // Clé gratuite à obtenir sur https://web3forms.com (en saisissant votre email).
-  web3formsKey: "",
+  web3formsKey: "8147c4d2-e494-47a8-a5b6-0fdfad2f356d",
 
   // Affiché si l'envoi échoue.
   monTelephone: "07 83 70 82 46",
