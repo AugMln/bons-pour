@@ -92,7 +92,7 @@
 
   function rendreEntete() {
     const noms = prenoms.join(" & ");
-    document.title = `🎁 Les bons de ${noms}`;
+    document.title = `Les bons de ${noms}`;
     $("#titre").textContent = `Joyeux anniversaire ${noms} !`;
     $("#message").textContent = CONFIG.messageAccueil || "";
     $("#signature").textContent = CONFIG.monPrenom ? `— ${CONFIG.monPrenom}` : "";

@@ -3,7 +3,7 @@
 // ============================================================
 const CONFIG = {
   // ⚠️ À personnaliser
-  prenoms: ["Mady", "Pady"],
+  prenoms: ["Pady", "Mady"],
   monPrenom: "Augustin",
   messageAccueil:
     "Pour vos anniversaires, je vous offre un peu de mon temps.\n" +
