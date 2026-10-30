@@ -39,6 +39,7 @@ const CONFIG = {
   //   photo: "photos/jardin.jpg"   → la photo apparaît dans l'album « Nos moments »
   //   legende: "La haie est enfin taillée !"  (facultatif, sous la photo)
   dejaUtilises: [
+    { uid: "mvur8ac84bwd", bon: "jardin", date: "2026-10-30", message: "Avant les grands froids, ça serait bien que tu puisses nous tailler un petit 20 m de haie ( un flanc et le dessus) et éventuellement porter des sacs à la déchetterie. Jour à choisir en fonction de tes cours (et des prévisisons météo).\nOn en discute quand tu veux. Bisous" },
     // { uid: "lz8k2a9f", bon: "jardin", date: "2026-10-20", message: "Plutôt un samedi matin", prevu: "2026-10-25", photo: "photos/jardin.jpg" },
   ],
 };
